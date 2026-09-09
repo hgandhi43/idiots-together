@@ -39,6 +39,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputAction* InteractAction;
 
+public:
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -46,6 +49,16 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Interact();
+
+	void PerformInteractionTrace();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Group Project|Interaction")
+	float InteractionDistance = 350.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Group Project|Interaction")
+	TScriptInterface<class IGroupProjectInteractableInterface> FocusedInteractable;
+
+	AActor* FocusedActor;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

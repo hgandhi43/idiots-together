@@ -1,4 +1,5 @@
 #include "GroupProjectCharacter.h"
+#include "GroupProjectPlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -7,6 +8,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GroupProject/Interaction/GroupProjectInteractableInterface.h"
 #include "GroupProject/GroupProject.h"
 
 AGroupProjectCharacter::AGroupProjectCharacter()
@@ -37,6 +39,8 @@ AGroupProjectCharacter::AGroupProjectCharacter()
 
 	bReplicates = true;
 	SetReplicatingMovement(true);
+	PrimaryActorTick.bCanEverTick = true;
+	FocusedActor = nullptr;
 }
 
 void AGroupProjectCharacter::BeginPlay()
@@ -51,6 +55,73 @@ void AGroupProjectCharacter::BeginPlay()
 			{
 				Subsystem->AddMappingContext(DefaultMappingContext, 0);
 			}
+		}
+	}
+}
+
+void AGroupProjectCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (IsLocallyControlled())
+	{
+		PerformInteractionTrace();
+	}
+}
+
+void AGroupProjectCharacter::PerformInteractionTrace()
+{
+	if (!FollowCamera)
+	{
+		return;
+	}
+
+	FVector StartLoc = FollowCamera->GetComponentLocation();
+	FVector EndLoc = StartLoc + (FollowCamera->GetForwardVector() * InteractionDistance);
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, QueryParams);
+
+	AActor* HitActor = bHit ? HitResult.GetActor() : nullptr;
+
+	if (HitActor && HitActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	{
+		if (IGroupProjectInteractableInterface::Execute_CanInteract(HitActor, this))
+		{
+			if (HitActor != FocusedActor)
+			{
+				if (FocusedActor)
+				{
+					IGroupProjectInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+				}
+
+				FocusedActor = HitActor;
+				FocusedInteractable = HitActor;
+				IGroupProjectInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
+			}
+
+			FText PromptText = IGroupProjectInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
+
+			if (AGroupProjectPlayerController* PC = Cast<AGroupProjectPlayerController>(Controller))
+			{
+				PC->ShowInteractionPrompt(PromptText);
+			}
+			return;
+		}
+	}
+
+	if (FocusedActor)
+	{
+		IGroupProjectInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+		FocusedActor = nullptr;
+		FocusedInteractable = nullptr;
+
+		if (AGroupProjectPlayerController* PC = Cast<AGroupProjectPlayerController>(Controller))
+		{
+			PC->HideInteractionPrompt();
 		}
 	}
 }
@@ -114,5 +185,11 @@ void AGroupProjectCharacter::Look(const FInputActionValue& Value)
 
 void AGroupProjectCharacter::Interact()
 {
-	UE_LOG(LogGroupProject, Log, TEXT("Character Interact triggered by %s"), *GetName());
+	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	{
+		if (IGroupProjectInteractableInterface::Execute_CanInteract(FocusedActor, this))
+		{
+			IGroupProjectInteractableInterface::Execute_Interact(FocusedActor, this);
+		}
+	}
 }
