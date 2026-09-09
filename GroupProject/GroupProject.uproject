@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "Games",
+	"Description": "Group Project - Platform-Agnostic 2-6 Player Chaos Party Game Foundation",
+	"Modules": [
+		{
+			"Name": "GroupProject",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"EnhancedInput"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		}
+	]
+}
