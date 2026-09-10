@@ -1,14 +1,17 @@
 #include "IdiotsTogetherCharacter.h"
 #include "IdiotsTogetherPlayerController.h"
+#include "IdiotsTogetherPlayerState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "IdiotsTogether/Interaction/IdiotsTogetherInteractableInterface.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
@@ -48,10 +51,48 @@ AIdiotsTogetherCharacter::AIdiotsTogetherCharacter()
 		VisibleMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.8f));
 	}
 
+	OverheadTextComponent = CreateDefaultSubobject<UTextRenderComponent>(TEXT("OverheadTextComponent"));
+	OverheadTextComponent->SetupAttachment(RootComponent);
+	OverheadTextComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
+	OverheadTextComponent->SetHorizontalAlignment(EHTA_Center);
+	OverheadTextComponent->SetWorldSize(32.0f);
+	OverheadTextComponent->SetText(FText::FromString(TEXT("[UNSELECTED]")));
+
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> IMC(TEXT("/Game/Input/IMC_Default.IMC_Default"));
+	if (IMC.Succeeded())
+	{
+		DefaultMappingContext = IMC.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> IAMove(TEXT("/Game/Input/IA_Move.IA_Move"));
+	if (IAMove.Succeeded())
+	{
+		MoveAction = IAMove.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> IALook(TEXT("/Game/Input/IA_Look.IA_Look"));
+	if (IALook.Succeeded())
+	{
+		LookAction = IALook.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> IAJump(TEXT("/Game/Input/IA_Jump.IA_Jump"));
+	if (IAJump.Succeeded())
+	{
+		JumpAction = IAJump.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> IAInteract(TEXT("/Game/Input/IA_Interact.IA_Interact"));
+	if (IAInteract.Succeeded())
+	{
+		InteractAction = IAInteract.Object;
+	}
+
 	bReplicates = true;
 	SetReplicatingMovement(true);
 	PrimaryActorTick.bCanEverTick = true;
 	FocusedActor = nullptr;
+	DynamicMaterialInstance = nullptr;
 }
 
 void AIdiotsTogetherCharacter::BeginPlay()
@@ -61,6 +102,100 @@ void AIdiotsTogetherCharacter::BeginPlay()
 		*GetName(), *GetClass()->GetName(), Controller ? *Controller->GetName() : TEXT("NULL"),
 		IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"), *GetActorLocation().ToString());
 	RegisterMappingContext();
+	BindToPlayerState();
+}
+
+void AIdiotsTogetherCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character OnRep_PlayerState on %s"), *GetName());
+	BindToPlayerState();
+}
+
+void AIdiotsTogetherCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character PossessedBy on %s by %s"), *GetName(), NewController ? *NewController->GetName() : TEXT("NULL"));
+	BindToPlayerState();
+}
+
+void AIdiotsTogetherCharacter::BindToPlayerState()
+{
+	if (AIdiotsTogetherPlayerState* PS = GetPlayerState<AIdiotsTogetherPlayerState>())
+	{
+		PS->OnCharacterTypeChanged.RemoveDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged);
+		PS->OnCharacterTypeChanged.AddDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged);
+
+		UpdateCharacterRepresentation(PS->GetCharacterType());
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[BINDING] Bound %s to PlayerState %s with CharacterType=%d"),
+			*GetName(), *PS->GetName(), static_cast<int32>(PS->GetCharacterType()));
+	}
+}
+
+void AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged(EIdiotsTogetherCharacterType NewType)
+{
+	UpdateCharacterRepresentation(NewType);
+}
+
+void AIdiotsTogetherCharacter::UpdateCharacterRepresentation(EIdiotsTogetherCharacterType NewType)
+{
+	if (!VisibleMesh)
+	{
+		return;
+	}
+
+	if (!DynamicMaterialInstance && VisibleMesh->GetMaterial(0))
+	{
+		DynamicMaterialInstance = VisibleMesh->CreateAndSetMaterialInstanceDynamic(0);
+	}
+
+	FLinearColor CharColor = FLinearColor(0.4f, 0.4f, 0.4f, 1.0f);
+	FVector MeshScale = FVector(0.8f, 0.8f, 1.8f);
+	FString DisplayName = TEXT("[UNSELECTED]");
+
+	switch (NewType)
+	{
+	case EIdiotsTogetherCharacterType::Boss:
+		CharColor = FLinearColor(1.0f, 0.8f, 0.0f, 1.0f); // Confident Gold
+		MeshScale = FVector(0.9f, 0.9f, 1.85f);
+		DisplayName = TEXT("[BOSS]");
+		break;
+	case EIdiotsTogetherCharacterType::Nerd:
+		CharColor = FLinearColor(0.0f, 0.75f, 1.0f, 1.0f); // Smart Cyan / Blue
+		MeshScale = FVector(0.75f, 0.75f, 1.95f);
+		DisplayName = TEXT("[NERD]");
+		break;
+	case EIdiotsTogetherCharacterType::Muscle:
+		CharColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f); // Strong Red
+		MeshScale = FVector(1.25f, 1.25f, 1.7f);
+		DisplayName = TEXT("[MUSCLE]");
+		break;
+	case EIdiotsTogetherCharacterType::Intern:
+		CharColor = FLinearColor(0.2f, 0.85f, 0.2f, 1.0f); // Young/Inexperienced Green
+		MeshScale = FVector(0.75f, 0.75f, 1.45f);
+		DisplayName = TEXT("[INTERN]");
+		break;
+	default:
+		break;
+	}
+
+	VisibleMesh->SetRelativeScale3D(MeshScale);
+
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("Color"), CharColor);
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("BaseColor"), CharColor);
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("TintColor"), CharColor);
+	}
+
+	if (OverheadTextComponent)
+	{
+		OverheadTextComponent->SetText(FText::FromString(DisplayName));
+		OverheadTextComponent->SetTextRenderColor(CharColor.ToFColor(true));
+	}
+
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A REPRESENTATION UPDATE] M3A REPRESENTATION UPDATE: Character=%s, Type=%d (%s)"),
+		*GetName(), static_cast<int32>(NewType), *DisplayName);
 }
 
 void AIdiotsTogetherCharacter::NotifyControllerChanged()
@@ -110,6 +245,22 @@ void AIdiotsTogetherCharacter::RegisterMappingContext()
 void AIdiotsTogetherCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (OverheadTextComponent && GetWorld())
+	{
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			if (APlayerCameraManager* CameraManager = PC->PlayerCameraManager)
+			{
+				FVector CameraLoc = CameraManager->GetCameraLocation();
+				FVector TextLoc = OverheadTextComponent->GetComponentLocation();
+				FRotator LookAtRot = (CameraLoc - TextLoc).Rotation();
+				LookAtRot.Pitch = 0.0f;
+				LookAtRot.Roll = 0.0f;
+				OverheadTextComponent->SetWorldRotation(LookAtRot);
+			}
+		}
+	}
 
 	if (IsLocallyControlled())
 	{

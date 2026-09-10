@@ -8,9 +8,21 @@
 AIdiotsTogetherGameModeBase::AIdiotsTogetherGameModeBase()
 {
 	PlayerControllerClass = AIdiotsTogetherPlayerController::StaticClass();
+	static ConstructorHelpers::FClassFinder<APlayerController> PCClass(TEXT("/Game/Core/Game/BP_IdiotsTogetherPlayerController.BP_IdiotsTogetherPlayerController_C"));
+	if (PCClass.Succeeded())
+	{
+		PlayerControllerClass = PCClass.Class;
+	}
+
+	DefaultPawnClass = AIdiotsTogetherCharacter::StaticClass();
+	static ConstructorHelpers::FClassFinder<APawn> PawnClass(TEXT("/Game/Core/Characters/BP_IdiotsTogetherCharacter.BP_IdiotsTogetherCharacter_C"));
+	if (PawnClass.Succeeded())
+	{
+		DefaultPawnClass = PawnClass.Class;
+	}
+
 	GameStateClass = AIdiotsTogetherGameStateBase::StaticClass();
 	PlayerStateClass = AIdiotsTogetherPlayerState::StaticClass();
-	DefaultPawnClass = AIdiotsTogetherCharacter::StaticClass();
 }
 
 void AIdiotsTogetherGameModeBase::BeginPlay()

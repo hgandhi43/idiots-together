@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "IdiotsTogetherTypes.h"
 #include "IdiotsTogetherCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UTextRenderComponent;
 
 UCLASS(config=Game)
 class IDIOTSTOGETHER_API AIdiotsTogetherCharacter : public ACharacter
@@ -23,6 +25,9 @@ class IDIOTSTOGETHER_API AIdiotsTogetherCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* VisibleMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	UTextRenderComponent* OverheadTextComponent;
 
 public:
 	AIdiotsTogetherCharacter();
@@ -45,6 +50,11 @@ public:
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void Jump() override;
+	virtual void OnRep_PlayerState() override;
+	virtual void PossessedBy(AController* NewController) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Character")
+	void UpdateCharacterRepresentation(EIdiotsTogetherCharacterType NewType);
 
 protected:
 	virtual void BeginPlay() override;
@@ -53,6 +63,10 @@ protected:
 	virtual void PawnClientRestart() override;
 
 	void RegisterMappingContext();
+	void BindToPlayerState();
+
+	UFUNCTION()
+	void OnPlayerStateCharacterTypeChanged(EIdiotsTogetherCharacterType NewType);
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -70,6 +84,9 @@ protected:
 	TScriptInterface<class IIIdiotsTogetherInteractableInterface> FocusedInteractable;
 
 	AActor* FocusedActor;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic* DynamicMaterialInstance;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

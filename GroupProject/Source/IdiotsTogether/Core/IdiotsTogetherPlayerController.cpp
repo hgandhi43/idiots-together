@@ -1,13 +1,21 @@
 #include "IdiotsTogetherPlayerController.h"
 #include "EnhancedInputSubsystemInterface.h"
 #include "EnhancedInputSubsystems.h"
+#include "IdiotsTogetherPlayerState.h"
 #include "IdiotsTogether/UI/IdiotsTogetherInteractionWidget.h"
+#include "IdiotsTogether/UI/IdiotsTogetherDevCharSelectWidget.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
 AIdiotsTogetherPlayerController::AIdiotsTogetherPlayerController()
 {
 	bShowMouseCursor = false;
 	DefaultMouseCursor = EMouseCursor::Default;
+
+	static ConstructorHelpers::FClassFinder<UIIdiotsTogetherInteractionWidget> WidgetClassFinder(TEXT("/Game/UI/WBP_IdiotsTogetherInteractionPrompt.WBP_IdiotsTogetherInteractionPrompt_C"));
+	if (WidgetClassFinder.Succeeded())
+	{
+		InteractionWidgetClass = WidgetClassFinder.Class;
+	}
 }
 
 void AIdiotsTogetherPlayerController::BeginPlay()
@@ -44,6 +52,26 @@ void AIdiotsTogetherPlayerController::BeginPlay()
 			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] InteractionWidgetInstance created and added to viewport."));
 		}
 	}
+
+	if (IsLocalController())
+	{
+		TSubclassOf<UIdiotsTogetherDevCharSelectWidget> WidgetClassToUse = DevCharSelectWidgetClass;
+		if (!WidgetClassToUse)
+		{
+			WidgetClassToUse = UIdiotsTogetherDevCharSelectWidget::StaticClass();
+		}
+
+		DevCharSelectWidgetInstance = CreateWidget<UIdiotsTogetherDevCharSelectWidget>(this, WidgetClassToUse);
+		if (DevCharSelectWidgetInstance)
+		{
+			DevCharSelectWidgetInstance->AddToViewport(5);
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A DEV UI] M3A DEV UI CREATED on %s"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogIdiotsTogether, Error, TEXT("[M3A DEV UI] FAILED to create DevCharSelectWidgetInstance on %s"), *GetName());
+		}
+	}
 }
 
 void AIdiotsTogetherPlayerController::ShowInteractionPrompt(const FText& Text)
@@ -66,4 +94,88 @@ void AIdiotsTogetherPlayerController::HideInteractionPrompt()
 void AIdiotsTogetherPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+
+	if (InputComponent)
+	{
+		InputComponent->BindKey(EKeys::One, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectBoss);
+		InputComponent->BindKey(EKeys::Two, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectNerd);
+		InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectMuscle);
+		InputComponent->BindKey(EKeys::Four, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectIntern);
+		InputComponent->BindKey(EKeys::Five, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectRandom);
+		InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &AIdiotsTogetherPlayerController::ToggleDevCursor);
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Bound keys 1-5 and Tab for character selection shortcuts."));
+	}
+}
+
+void AIdiotsTogetherPlayerController::ToggleDevCursor()
+{
+	bShowMouseCursor = !bShowMouseCursor;
+	if (bShowMouseCursor)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
+		SetInputMode(InputMode);
+	}
+	else
+	{
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+	}
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Toggled mouse cursor: %s"), bShowMouseCursor ? TEXT("ON") : TEXT("OFF"));
+}
+
+void AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Implementation(EIdiotsTogetherCharacterType Selection)
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SERVER SELECT] M3A SERVER SELECT: RequestedType=%d from PC=%s"),
+		static_cast<int32>(Selection), *GetName());
+
+	if (AIdiotsTogetherPlayerState* PS = GetPlayerState<AIdiotsTogetherPlayerState>())
+	{
+		PS->ServerSelectCharacter(Selection);
+	}
+	else
+	{
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER RPC] PlayerState is NULL on PC %s during ServerRequestCharacterSelection!"), *GetName());
+	}
+}
+
+bool AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Validate(EIdiotsTogetherCharacterType Selection)
+{
+	return true;
+}
+
+void AIdiotsTogetherPlayerController::DevSelectBoss()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A INPUT] M3A INPUT: 1 (Boss)"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Boss (1)"));
+	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Boss);
+}
+
+void AIdiotsTogetherPlayerController::DevSelectNerd()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A INPUT] M3A INPUT: 2 (Nerd)"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Nerd (2)"));
+	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Nerd);
+}
+
+void AIdiotsTogetherPlayerController::DevSelectMuscle()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A INPUT] M3A INPUT: 3 (Muscle)"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Muscle (3)"));
+	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Muscle);
+}
+
+void AIdiotsTogetherPlayerController::DevSelectIntern()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A INPUT] M3A INPUT: 4 (Intern)"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Intern (4)"));
+	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Intern);
+}
+
+void AIdiotsTogetherPlayerController::DevSelectRandom()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A INPUT] M3A INPUT: 5 (Random)"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Random (5)"));
+	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Random);
 }
