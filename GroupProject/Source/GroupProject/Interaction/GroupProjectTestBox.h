@@ -25,11 +25,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Group Project|Interaction")
 	FText InteractionPromptText;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Group Project|State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Group Project|State")
 	bool bIsActivated;
 
+	UPROPERTY(ReplicatedUsing = OnRep_TargetRotation)
 	FRotator TargetRotation;
+
 	FRotator InitialRotation;
+
+	UFUNCTION()
+	void OnRep_TargetRotation();
 
 public:
 	// IGroupProjectInteractableInterface

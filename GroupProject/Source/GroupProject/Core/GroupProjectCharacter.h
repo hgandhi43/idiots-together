@@ -58,6 +58,9 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Interact();
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerInteract(AActor* TargetActor);
+
 	void PerformInteractionTrace();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Group Project|Interaction")

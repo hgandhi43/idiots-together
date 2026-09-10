@@ -1,6 +1,7 @@
 #include "GroupProjectTestBox.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Net/UnrealNetwork.h"
 #include "GroupProject/GroupProject.h"
 
 AGroupProjectTestBox::AGroupProjectTestBox()
@@ -22,6 +23,14 @@ AGroupProjectTestBox::AGroupProjectTestBox()
 	InteractionPromptText = FText::FromString(TEXT("Press E to Interact"));
 	bIsActivated = false;
 	bReplicates = true;
+}
+
+void AGroupProjectTestBox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AGroupProjectTestBox, bIsActivated);
+	DOREPLIFETIME(AGroupProjectTestBox, TargetRotation);
 }
 
 void AGroupProjectTestBox::BeginPlay()
@@ -56,10 +65,21 @@ bool AGroupProjectTestBox::CanInteract_Implementation(APawn* InstigatorPawn)
 
 void AGroupProjectTestBox::Interact_Implementation(APawn* InstigatorPawn)
 {
-	bIsActivated = !bIsActivated;
-	TargetRotation = InitialRotation + FRotator(0.0f, bIsActivated ? 90.0f : 0.0f, 0.0f);
+	if (HasAuthority())
+	{
+		bIsActivated = !bIsActivated;
+		TargetRotation = InitialRotation + FRotator(0.0f, bIsActivated ? 90.0f : 0.0f, 0.0f);
 
-	UE_LOG(LogGroupProject, Log, TEXT("GroupProjectTestBox interacted! New activated state: %s"), bIsActivated ? TEXT("True") : TEXT("False"));
+		UE_LOG(LogGroupProject, Warning, TEXT("[SERVER] GroupProjectTestBox interacted by %s! New bIsActivated=%s, TargetRotation=%s"),
+			InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"),
+			bIsActivated ? TEXT("True") : TEXT("False"),
+			*TargetRotation.ToString());
+	}
+}
+
+void AGroupProjectTestBox::OnRep_TargetRotation()
+{
+	UE_LOG(LogGroupProject, Warning, TEXT("[CLIENT ONREP] GroupProjectTestBox TargetRotation replicated: %s"), *TargetRotation.ToString());
 }
 
 void AGroupProjectTestBox::OnBeginFocus_Implementation(APawn* InstigatorPawn)

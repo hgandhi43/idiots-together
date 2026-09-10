@@ -124,8 +124,14 @@ void AGroupProjectCharacter::PerformInteractionTrace()
 		return;
 	}
 
+	float EffectiveTraceDistance = InteractionDistance;
+	if (CameraBoom)
+	{
+		EffectiveTraceDistance += CameraBoom->TargetArmLength;
+	}
+
 	FVector StartLoc = FollowCamera->GetComponentLocation();
-	FVector EndLoc = StartLoc + (FollowCamera->GetForwardVector() * InteractionDistance);
+	FVector EndLoc = StartLoc + (FollowCamera->GetForwardVector() * EffectiveTraceDistance);
 
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
@@ -149,6 +155,7 @@ void AGroupProjectCharacter::PerformInteractionTrace()
 				FocusedActor = HitActor;
 				FocusedInteractable = HitActor;
 				IGroupProjectInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
+				UE_LOG(LogGroupProject, Warning, TEXT("[INTERACTION] OnBeginFocus called on %s by %s"), *FocusedActor->GetName(), *GetName());
 			}
 
 			FText PromptText = IGroupProjectInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
@@ -156,6 +163,7 @@ void AGroupProjectCharacter::PerformInteractionTrace()
 			if (AGroupProjectPlayerController* PC = Cast<AGroupProjectPlayerController>(Controller))
 			{
 				PC->ShowInteractionPrompt(PromptText);
+				UE_LOG(LogGroupProject, Warning, TEXT("[INTERACTION] ShowInteractionPrompt called with prompt: '%s'"), *PromptText.ToString());
 			}
 			return;
 		}
@@ -256,14 +264,45 @@ void AGroupProjectCharacter::Look(const FInputActionValue& Value)
 
 void AGroupProjectCharacter::Interact()
 {
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Interact fired! FocusedActor=%s"),
-		FocusedActor ? *FocusedActor->GetName() : TEXT("NONE"));
+	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Interact fired! FocusedActor=%s, HasAuthority=%s"),
+		FocusedActor ? *FocusedActor->GetName() : TEXT("NONE"),
+		HasAuthority() ? TEXT("TRUE") : TEXT("FALSE"));
 
 	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
 	{
 		if (IGroupProjectInteractableInterface::Execute_CanInteract(FocusedActor, this))
 		{
-			IGroupProjectInteractableInterface::Execute_Interact(FocusedActor, this);
+			if (HasAuthority())
+			{
+				IGroupProjectInteractableInterface::Execute_Interact(FocusedActor, this);
+			}
+			else
+			{
+				ServerInteract(FocusedActor);
+			}
 		}
 	}
+}
+
+void AGroupProjectCharacter::ServerInteract_Implementation(AActor* TargetActor)
+{
+	UE_LOG(LogGroupProject, Warning, TEXT("[SERVER] ServerInteract received from client %s for target %s"),
+		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("NULL"));
+
+	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	{
+		float DistSq = FVector::DistSquared(GetActorLocation(), TargetActor->GetActorLocation());
+		if (DistSq <= FMath::Square(InteractionDistance + 200.0f))
+		{
+			if (IGroupProjectInteractableInterface::Execute_CanInteract(TargetActor, this))
+			{
+				IGroupProjectInteractableInterface::Execute_Interact(TargetActor, this);
+			}
+		}
+	}
+}
+
+bool AGroupProjectCharacter::ServerInteract_Validate(AActor* TargetActor)
+{
+	return true;
 }
