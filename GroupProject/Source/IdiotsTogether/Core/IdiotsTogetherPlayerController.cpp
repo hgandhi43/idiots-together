@@ -1,20 +1,20 @@
-#include "GroupProjectPlayerController.h"
+#include "IdiotsTogetherPlayerController.h"
 #include "EnhancedInputSubsystemInterface.h"
 #include "EnhancedInputSubsystems.h"
-#include "GroupProject/UI/GroupProjectInteractionWidget.h"
-#include "GroupProject/GroupProject.h"
+#include "IdiotsTogether/UI/IdiotsTogetherInteractionWidget.h"
+#include "IdiotsTogether/IdiotsTogether.h"
 
-AGroupProjectPlayerController::AGroupProjectPlayerController()
+AIdiotsTogetherPlayerController::AIdiotsTogetherPlayerController()
 {
 	bShowMouseCursor = false;
 	DefaultMouseCursor = EMouseCursor::Default;
 }
 
-void AGroupProjectPlayerController::BeginPlay()
+void AIdiotsTogetherPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] PlayerController BeginPlay: Name=%s, Class=%s, IsLocal=%s, PossessedPawn=%s (Class=%s)"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] PlayerController BeginPlay: Name=%s, Class=%s, IsLocal=%s, PossessedPawn=%s (Class=%s)"),
 		*GetName(),
 		*GetClass()->GetName(),
 		IsLocalController() ? TEXT("TRUE") : TEXT("FALSE"),
@@ -23,7 +23,7 @@ void AGroupProjectPlayerController::BeginPlay()
 
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Enhanced Input Subsystem initialized for PlayerController."));
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Enhanced Input Subsystem initialized for PlayerController."));
 	}
 
 	if (IsLocalController())
@@ -31,22 +31,22 @@ void AGroupProjectPlayerController::BeginPlay()
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
 		bShowMouseCursor = false;
-		UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] PlayerController SetInputMode FInputModeGameOnly enabled."));
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] PlayerController SetInputMode FInputModeGameOnly enabled."));
 	}
 
 	if (IsLocalController() && InteractionWidgetClass)
 	{
-		InteractionWidgetInstance = CreateWidget<UGroupProjectInteractionWidget>(this, InteractionWidgetClass);
+		InteractionWidgetInstance = CreateWidget<UIIdiotsTogetherInteractionWidget>(this, InteractionWidgetClass);
 		if (InteractionWidgetInstance)
 		{
 			InteractionWidgetInstance->AddToViewport(10);
 			InteractionWidgetInstance->HidePrompt();
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] InteractionWidgetInstance created and added to viewport."));
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] InteractionWidgetInstance created and added to viewport."));
 		}
 	}
 }
 
-void AGroupProjectPlayerController::ShowInteractionPrompt(const FText& Text)
+void AIdiotsTogetherPlayerController::ShowInteractionPrompt(const FText& Text)
 {
 	if (InteractionWidgetInstance)
 	{
@@ -55,7 +55,7 @@ void AGroupProjectPlayerController::ShowInteractionPrompt(const FText& Text)
 	}
 }
 
-void AGroupProjectPlayerController::HideInteractionPrompt()
+void AIdiotsTogetherPlayerController::HideInteractionPrompt()
 {
 	if (InteractionWidgetInstance)
 	{
@@ -63,7 +63,7 @@ void AGroupProjectPlayerController::HideInteractionPrompt()
 	}
 }
 
-void AGroupProjectPlayerController::SetupInputComponent()
+void AIdiotsTogetherPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 }

@@ -1,14 +1,14 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class GroupProjectTarget : TargetRules
+public class IdiotsTogetherEditorTarget : TargetRules
 {
-	public GroupProjectTarget(TargetInfo Target) : base(Target)
+	public IdiotsTogetherEditorTarget(TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Game;
+		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		bOverrideBuildEnvironment = true;
-		ExtraModuleNames.Add("GroupProject");
+		ExtraModuleNames.Add("IdiotsTogether");
 	}
 }

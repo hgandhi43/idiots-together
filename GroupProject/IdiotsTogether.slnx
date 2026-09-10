@@ -17,7 +17,7 @@
     </Project>
   </Folder>
   <Folder Name="/Games/">
-    <Project Path="Intermediate/ProjectFiles/GroupProject.vcxproj" Id="20bb2437-cd7d-3d33-89e1-bcfc8dd73877">
+    <Project Path="Intermediate/ProjectFiles/IdiotsTogether.vcxproj" Id="8578d514-8673-35a7-b8a2-9307b72c0b03">
       <BuildType Solution="DebugGame Editor|Win64" Project="DebugGame_Editor" />
       <BuildType Solution="DebugGame Editor|Win64-arm64" Project="Win64_arm64_DebugGame_Editor" />
       <BuildType Solution="DebugGame Editor|Win64-arm64ec" Project="Win64_arm64ec_DebugGame_Editor" />
@@ -210,7 +210,7 @@
     <Project Path="../../../../../../Program Files/Epic Games/UE_5.8/Engine/Intermediate/Build/BuildRulesProjects/UE5Rules/UE5Rules.csproj">
       <BuildType Project="Development" />
     </Project>
-    <Project Path="Intermediate/Build/BuildRulesProjects/GroupProjectModuleRules/GroupProjectModuleRules.csproj">
+    <Project Path="Intermediate/Build/BuildRulesProjects/IdiotsTogetherModuleRules/IdiotsTogetherModuleRules.csproj">
       <BuildType Project="Development" />
     </Project>
   </Folder>

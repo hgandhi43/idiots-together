@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
-#include "GroupProjectCharacter.generated.h"
+#include "IdiotsTogetherCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
@@ -11,7 +11,7 @@ class UInputMappingContext;
 class UInputAction;
 
 UCLASS(config=Game)
-class GROUPPROJECT_API AGroupProjectCharacter : public ACharacter
+class IDIOTSTOGETHER_API AIdiotsTogetherCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -25,7 +25,7 @@ class GROUPPROJECT_API AGroupProjectCharacter : public ACharacter
 	UStaticMeshComponent* VisibleMesh;
 
 public:
-	AGroupProjectCharacter();
+	AIdiotsTogetherCharacter();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	UInputMappingContext* DefaultMappingContext;
@@ -63,11 +63,11 @@ protected:
 
 	void PerformInteractionTrace();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Group Project|Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction")
 	float InteractionDistance = 350.0f;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Group Project|Interaction")
-	TScriptInterface<class IGroupProjectInteractableInterface> FocusedInteractable;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Idiots Together|Interaction")
+	TScriptInterface<class IIIdiotsTogetherInteractableInterface> FocusedInteractable;
 
 	AActor* FocusedActor;
 

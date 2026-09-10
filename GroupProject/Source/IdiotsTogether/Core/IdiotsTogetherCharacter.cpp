@@ -1,5 +1,5 @@
-#include "GroupProjectCharacter.h"
-#include "GroupProjectPlayerController.h"
+#include "IdiotsTogetherCharacter.h"
+#include "IdiotsTogetherPlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -9,10 +9,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
-#include "GroupProject/Interaction/GroupProjectInteractableInterface.h"
-#include "GroupProject/GroupProject.h"
+#include "IdiotsTogether/Interaction/IdiotsTogetherInteractableInterface.h"
+#include "IdiotsTogether/IdiotsTogether.h"
 
-AGroupProjectCharacter::AGroupProjectCharacter()
+AIdiotsTogetherCharacter::AIdiotsTogetherCharacter()
 {
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -54,32 +54,32 @@ AGroupProjectCharacter::AGroupProjectCharacter()
 	FocusedActor = nullptr;
 }
 
-void AGroupProjectCharacter::BeginPlay()
+void AIdiotsTogetherCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character BeginPlay: Name=%s, Class=%s, Controller=%s, IsLocallyControlled=%s, Location=%s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character BeginPlay: Name=%s, Class=%s, Controller=%s, IsLocallyControlled=%s, Location=%s"),
 		*GetName(), *GetClass()->GetName(), Controller ? *Controller->GetName() : TEXT("NULL"),
 		IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"), *GetActorLocation().ToString());
 	RegisterMappingContext();
 }
 
-void AGroupProjectCharacter::NotifyControllerChanged()
+void AIdiotsTogetherCharacter::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character NotifyControllerChanged: Controller=%s, IsLocallyControlled=%s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character NotifyControllerChanged: Controller=%s, IsLocallyControlled=%s"),
 		Controller ? *Controller->GetName() : TEXT("NULL"), IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"));
 	RegisterMappingContext();
 }
 
-void AGroupProjectCharacter::PawnClientRestart()
+void AIdiotsTogetherCharacter::PawnClientRestart()
 {
 	Super::PawnClientRestart();
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character PawnClientRestart: Controller=%s, IsLocallyControlled=%s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character PawnClientRestart: Controller=%s, IsLocallyControlled=%s"),
 		Controller ? *Controller->GetName() : TEXT("NULL"), IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"));
 	RegisterMappingContext();
 }
 
-void AGroupProjectCharacter::RegisterMappingContext()
+void AIdiotsTogetherCharacter::RegisterMappingContext()
 {
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -88,26 +88,26 @@ void AGroupProjectCharacter::RegisterMappingContext()
 			if (DefaultMappingContext)
 			{
 				Subsystem->AddMappingContext(DefaultMappingContext, 0);
-				UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Added DefaultMappingContext (%s) to EnhancedInputSubsystem for %s"), *DefaultMappingContext->GetName(), *GetName());
+				UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Added DefaultMappingContext (%s) to EnhancedInputSubsystem for %s"), *DefaultMappingContext->GetName(), *GetName());
 			}
 			else
 			{
-				UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] DefaultMappingContext is NULL on %s!"), *GetName());
+				UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] DefaultMappingContext is NULL on %s!"), *GetName());
 			}
 		}
 		else
 		{
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] EnhancedInputLocalPlayerSubsystem is NULL for %s!"), *PlayerController->GetName());
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] EnhancedInputLocalPlayerSubsystem is NULL for %s!"), *PlayerController->GetName());
 		}
 	}
 	else
 	{
-		UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] RegisterMappingContext skipped because Controller is not APlayerController (Controller=%s)"),
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] RegisterMappingContext skipped because Controller is not APlayerController (Controller=%s)"),
 			Controller ? *Controller->GetName() : TEXT("NULL"));
 	}
 }
 
-void AGroupProjectCharacter::Tick(float DeltaTime)
+void AIdiotsTogetherCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -117,7 +117,7 @@ void AGroupProjectCharacter::Tick(float DeltaTime)
 	}
 }
 
-void AGroupProjectCharacter::PerformInteractionTrace()
+void AIdiotsTogetherCharacter::PerformInteractionTrace()
 {
 	if (!FollowCamera)
 	{
@@ -141,29 +141,29 @@ void AGroupProjectCharacter::PerformInteractionTrace()
 
 	AActor* HitActor = bHit ? HitResult.GetActor() : nullptr;
 
-	if (HitActor && HitActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	if (HitActor && HitActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
 	{
-		if (IGroupProjectInteractableInterface::Execute_CanInteract(HitActor, this))
+		if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(HitActor, this))
 		{
 			if (HitActor != FocusedActor)
 			{
 				if (FocusedActor)
 				{
-					IGroupProjectInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+					IIIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
 				}
 
 				FocusedActor = HitActor;
 				FocusedInteractable = HitActor;
-				IGroupProjectInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
-				UE_LOG(LogGroupProject, Warning, TEXT("[INTERACTION] OnBeginFocus called on %s by %s"), *FocusedActor->GetName(), *GetName());
+				IIIdiotsTogetherInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
+				UE_LOG(LogIdiotsTogether, Warning, TEXT("[INTERACTION] OnBeginFocus called on %s by %s"), *FocusedActor->GetName(), *GetName());
 			}
 
-			FText PromptText = IGroupProjectInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
+			FText PromptText = IIIdiotsTogetherInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
 
-			if (AGroupProjectPlayerController* PC = Cast<AGroupProjectPlayerController>(Controller))
+			if (AIdiotsTogetherPlayerController* PC = Cast<AIdiotsTogetherPlayerController>(Controller))
 			{
 				PC->ShowInteractionPrompt(PromptText);
-				UE_LOG(LogGroupProject, Warning, TEXT("[INTERACTION] ShowInteractionPrompt called with prompt: '%s'"), *PromptText.ToString());
+				UE_LOG(LogIdiotsTogether, Warning, TEXT("[INTERACTION] ShowInteractionPrompt called with prompt: '%s'"), *PromptText.ToString());
 			}
 			return;
 		}
@@ -171,58 +171,58 @@ void AGroupProjectCharacter::PerformInteractionTrace()
 
 	if (FocusedActor)
 	{
-		IGroupProjectInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+		IIIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
 		FocusedActor = nullptr;
 		FocusedInteractable = nullptr;
 
-		if (AGroupProjectPlayerController* PC = Cast<AGroupProjectPlayerController>(Controller))
+		if (AIdiotsTogetherPlayerController* PC = Cast<AIdiotsTogetherPlayerController>(Controller))
 		{
 			PC->HideInteractionPrompt();
 		}
 	}
 }
 
-void AGroupProjectCharacter::Jump()
+void AIdiotsTogetherCharacter::Jump()
 {
 	Super::Jump();
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Jump fired!"));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Jump fired!"));
 }
 
-void AGroupProjectCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AIdiotsTogetherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] SetupPlayerInputComponent called on %s!"), *GetName());
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] SetupPlayerInputComponent called on %s!"), *GetName());
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		if (JumpAction)
 		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AGroupProjectCharacter::Jump);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AIdiotsTogetherCharacter::Jump);
 			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound JumpAction (%s)"), *JumpAction->GetName());
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound JumpAction (%s)"), *JumpAction->GetName());
 		}
 
 		if (MoveAction)
 		{
-			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AGroupProjectCharacter::Move);
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound MoveAction (%s)"), *MoveAction->GetName());
+			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Move);
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound MoveAction (%s)"), *MoveAction->GetName());
 		}
 
 		if (LookAction)
 		{
-			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGroupProjectCharacter::Look);
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound LookAction (%s)"), *LookAction->GetName());
+			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Look);
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound LookAction (%s)"), *LookAction->GetName());
 		}
 
 		if (InteractAction)
 		{
-			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AGroupProjectCharacter::Interact);
-			UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound InteractAction (%s)"), *InteractAction->GetName());
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AIdiotsTogetherCharacter::Interact);
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound InteractAction (%s)"), *InteractAction->GetName());
 		}
 	}
 }
 
-void AGroupProjectCharacter::Move(const FInputActionValue& Value)
+void AIdiotsTogetherCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -238,7 +238,7 @@ void AGroupProjectCharacter::Move(const FInputActionValue& Value)
 		const FVector FinalRight = RightDirection * MovementVector.X;
 		const FVector TotalInputVector = FinalForward + FinalRight;
 
-		UE_LOG(LogGroupProject, Warning, TEXT("[MOVEMENT DIAGNOSTIC] IA_Move: Input2D=(X=%.2f, Y=%.2f) | ControllerYaw=%.2f | ForwardVec=(X=%.2f, Y=%.2f, Z=%.2f) | RightVec=(X=%.2f, Y=%.2f, Z=%.2f) | FinalMove=(X=%.2f, Y=%.2f, Z=%.2f)"),
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[MOVEMENT DIAGNOSTIC] IA_Move: Input2D=(X=%.2f, Y=%.2f) | ControllerYaw=%.2f | ForwardVec=(X=%.2f, Y=%.2f, Z=%.2f) | RightVec=(X=%.2f, Y=%.2f, Z=%.2f) | FinalMove=(X=%.2f, Y=%.2f, Z=%.2f)"),
 			MovementVector.X, MovementVector.Y, Rotation.Yaw,
 			ForwardDirection.X, ForwardDirection.Y, ForwardDirection.Z,
 			RightDirection.X, RightDirection.Y, RightDirection.Z,
@@ -249,10 +249,10 @@ void AGroupProjectCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
-void AGroupProjectCharacter::Look(const FInputActionValue& Value)
+void AIdiotsTogetherCharacter::Look(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Look fired! Vector=(X=%.2f, Y=%.2f), Controller=%s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Look fired! Vector=(X=%.2f, Y=%.2f), Controller=%s"),
 		LookAxisVector.X, LookAxisVector.Y, Controller ? *Controller->GetName() : TEXT("NULL"));
 
 	if (Controller != nullptr)
@@ -262,19 +262,19 @@ void AGroupProjectCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void AGroupProjectCharacter::Interact()
+void AIdiotsTogetherCharacter::Interact()
 {
-	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Interact fired! FocusedActor=%s, HasAuthority=%s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Interact fired! FocusedActor=%s, HasAuthority=%s"),
 		FocusedActor ? *FocusedActor->GetName() : TEXT("NONE"),
 		HasAuthority() ? TEXT("TRUE") : TEXT("FALSE"));
 
-	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
 	{
-		if (IGroupProjectInteractableInterface::Execute_CanInteract(FocusedActor, this))
+		if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(FocusedActor, this))
 		{
 			if (HasAuthority())
 			{
-				IGroupProjectInteractableInterface::Execute_Interact(FocusedActor, this);
+				IIIdiotsTogetherInteractableInterface::Execute_Interact(FocusedActor, this);
 			}
 			else
 			{
@@ -284,25 +284,25 @@ void AGroupProjectCharacter::Interact()
 	}
 }
 
-void AGroupProjectCharacter::ServerInteract_Implementation(AActor* TargetActor)
+void AIdiotsTogetherCharacter::ServerInteract_Implementation(AActor* TargetActor)
 {
-	UE_LOG(LogGroupProject, Warning, TEXT("[SERVER] ServerInteract received from client %s for target %s"),
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER] ServerInteract received from client %s for target %s"),
 		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("NULL"));
 
-	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UGroupProjectInteractableInterface::StaticClass()))
+	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
 	{
 		float DistSq = FVector::DistSquared(GetActorLocation(), TargetActor->GetActorLocation());
 		if (DistSq <= FMath::Square(InteractionDistance + 200.0f))
 		{
-			if (IGroupProjectInteractableInterface::Execute_CanInteract(TargetActor, this))
+			if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(TargetActor, this))
 			{
-				IGroupProjectInteractableInterface::Execute_Interact(TargetActor, this);
+				IIIdiotsTogetherInteractableInterface::Execute_Interact(TargetActor, this);
 			}
 		}
 	}
 }
 
-bool AGroupProjectCharacter::ServerInteract_Validate(AActor* TargetActor)
+bool AIdiotsTogetherCharacter::ServerInteract_Validate(AActor* TargetActor)
 {
 	return true;
 }

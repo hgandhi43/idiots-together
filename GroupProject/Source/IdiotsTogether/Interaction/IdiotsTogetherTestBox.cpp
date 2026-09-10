@@ -1,10 +1,10 @@
-#include "GroupProjectTestBox.h"
+#include "IdiotsTogetherTestBox.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Net/UnrealNetwork.h"
-#include "GroupProject/GroupProject.h"
+#include "IdiotsTogether/IdiotsTogether.h"
 
-AGroupProjectTestBox::AGroupProjectTestBox()
+AIdiotsTogetherTestBox::AIdiotsTogetherTestBox()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -25,22 +25,22 @@ AGroupProjectTestBox::AGroupProjectTestBox()
 	bReplicates = true;
 }
 
-void AGroupProjectTestBox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AIdiotsTogetherTestBox::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AGroupProjectTestBox, bIsActivated);
-	DOREPLIFETIME(AGroupProjectTestBox, TargetRotation);
+	DOREPLIFETIME(AIdiotsTogetherTestBox, bIsActivated);
+	DOREPLIFETIME(AIdiotsTogetherTestBox, TargetRotation);
 }
 
-void AGroupProjectTestBox::BeginPlay()
+void AIdiotsTogetherTestBox::BeginPlay()
 {
 	Super::BeginPlay();
 	InitialRotation = GetActorRotation();
 	TargetRotation = InitialRotation;
 }
 
-void AGroupProjectTestBox::Tick(float DeltaTime)
+void AIdiotsTogetherTestBox::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -53,41 +53,41 @@ void AGroupProjectTestBox::Tick(float DeltaTime)
 	}
 }
 
-FText AGroupProjectTestBox::GetInteractionPrompt_Implementation(APawn* InstigatorPawn)
+FText AIdiotsTogetherTestBox::GetInteractionPrompt_Implementation(APawn* InstigatorPawn)
 {
 	return InteractionPromptText;
 }
 
-bool AGroupProjectTestBox::CanInteract_Implementation(APawn* InstigatorPawn)
+bool AIdiotsTogetherTestBox::CanInteract_Implementation(APawn* InstigatorPawn)
 {
 	return true;
 }
 
-void AGroupProjectTestBox::Interact_Implementation(APawn* InstigatorPawn)
+void AIdiotsTogetherTestBox::Interact_Implementation(APawn* InstigatorPawn)
 {
 	if (HasAuthority())
 	{
 		bIsActivated = !bIsActivated;
 		TargetRotation = InitialRotation + FRotator(0.0f, bIsActivated ? 90.0f : 0.0f, 0.0f);
 
-		UE_LOG(LogGroupProject, Warning, TEXT("[SERVER] GroupProjectTestBox interacted by %s! New bIsActivated=%s, TargetRotation=%s"),
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER] IdiotsTogetherTestBox interacted by %s! New bIsActivated=%s, TargetRotation=%s"),
 			InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"),
 			bIsActivated ? TEXT("True") : TEXT("False"),
 			*TargetRotation.ToString());
 	}
 }
 
-void AGroupProjectTestBox::OnRep_TargetRotation()
+void AIdiotsTogetherTestBox::OnRep_TargetRotation()
 {
-	UE_LOG(LogGroupProject, Warning, TEXT("[CLIENT ONREP] GroupProjectTestBox TargetRotation replicated: %s"), *TargetRotation.ToString());
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[CLIENT ONREP] IdiotsTogetherTestBox TargetRotation replicated: %s"), *TargetRotation.ToString());
 }
 
-void AGroupProjectTestBox::OnBeginFocus_Implementation(APawn* InstigatorPawn)
+void AIdiotsTogetherTestBox::OnBeginFocus_Implementation(APawn* InstigatorPawn)
 {
-	UE_LOG(LogGroupProject, Log, TEXT("Player began focusing GroupProjectTestBox"));
+	UE_LOG(LogIdiotsTogether, Log, TEXT("Player began focusing IdiotsTogetherTestBox"));
 }
 
-void AGroupProjectTestBox::OnEndFocus_Implementation(APawn* InstigatorPawn)
+void AIdiotsTogetherTestBox::OnEndFocus_Implementation(APawn* InstigatorPawn)
 {
-	UE_LOG(LogGroupProject, Log, TEXT("Player ended focusing GroupProjectTestBox"));
+	UE_LOG(LogIdiotsTogether, Log, TEXT("Player ended focusing IdiotsTogetherTestBox"));
 }

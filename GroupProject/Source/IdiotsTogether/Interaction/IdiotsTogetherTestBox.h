@@ -2,18 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GroupProjectInteractableInterface.h"
-#include "GroupProjectTestBox.generated.h"
+#include "IdiotsTogetherInteractableInterface.h"
+#include "IdiotsTogetherTestBox.generated.h"
 
 class UStaticMeshComponent;
 
 UCLASS()
-class GROUPPROJECT_API AGroupProjectTestBox : public AActor, public IGroupProjectInteractableInterface
+class IDIOTSTOGETHER_API AIdiotsTogetherTestBox : public AActor, public IIIdiotsTogetherInteractableInterface
 {
 	GENERATED_BODY()
 
 public:
-	AGroupProjectTestBox();
+	AIdiotsTogetherTestBox();
 
 protected:
 	virtual void BeginPlay() override;
@@ -22,10 +22,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* BoxMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Group Project|Interaction")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction")
 	FText InteractionPromptText;
 
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Group Project|State")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Idiots Together|State")
 	bool bIsActivated;
 
 	UPROPERTY(ReplicatedUsing = OnRep_TargetRotation)
@@ -37,7 +37,7 @@ protected:
 	void OnRep_TargetRotation();
 
 public:
-	// IGroupProjectInteractableInterface
+	// IIIdiotsTogetherInteractableInterface
 	virtual FText GetInteractionPrompt_Implementation(APawn* InstigatorPawn) override;
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn) override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;

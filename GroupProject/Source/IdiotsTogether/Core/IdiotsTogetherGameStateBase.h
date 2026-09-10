@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
-#include "GroupProjectGameStateBase.generated.h"
+#include "IdiotsTogetherGameStateBase.generated.h"
 
 UENUM(BlueprintType)
 enum class EScenarioPhase : uint8
@@ -14,18 +14,18 @@ enum class EScenarioPhase : uint8
 };
 
 UCLASS()
-class GROUPPROJECT_API AGroupProjectGameStateBase : public AGameStateBase
+class IDIOTSTOGETHER_API AIdiotsTogetherGameStateBase : public AGameStateBase
 {
 	GENERATED_BODY()
 
 public:
-	AGroupProjectGameStateBase();
+	AIdiotsTogetherGameStateBase();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Group Project|Scenario")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	EScenarioPhase CurrentPhase;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Group Project|Scenario")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	FString ActiveScenarioName;
 };
