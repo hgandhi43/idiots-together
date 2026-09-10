@@ -21,6 +21,9 @@ class GROUPPROJECT_API AGroupProjectCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* VisibleMesh;
+
 public:
 	AGroupProjectCharacter();
 
@@ -41,10 +44,15 @@ public:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+	virtual void Jump() override;
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void NotifyControllerChanged() override;
+	virtual void PawnClientRestart() override;
+
+	void RegisterMappingContext();
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

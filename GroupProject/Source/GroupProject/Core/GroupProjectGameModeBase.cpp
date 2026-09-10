@@ -16,7 +16,10 @@ AGroupProjectGameModeBase::AGroupProjectGameModeBase()
 void AGroupProjectGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogGroupProject, Log, TEXT("AGroupProjectGameModeBase initialized."));
+	UE_LOG(LogGroupProject, Warning, TEXT("[RUNTIME DIAGNOSTIC] GameMode BeginPlay: Class=%s, DefaultPawnClass=%s, PlayerControllerClass=%s"),
+		*GetClass()->GetName(),
+		DefaultPawnClass ? *DefaultPawnClass->GetName() : TEXT("NULL"),
+		PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 }
 
 void AGroupProjectGameModeBase::PostLogin(APlayerController* NewPlayer)
