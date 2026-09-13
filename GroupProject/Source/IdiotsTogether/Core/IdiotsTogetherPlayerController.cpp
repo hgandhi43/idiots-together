@@ -2,9 +2,12 @@
 #include "EnhancedInputSubsystemInterface.h"
 #include "EnhancedInputSubsystems.h"
 #include "IdiotsTogetherPlayerState.h"
+#include "IdiotsTogetherGameModeBase.h"
 #include "IdiotsTogether/UI/IdiotsTogetherInteractionWidget.h"
 #include "IdiotsTogether/UI/IdiotsTogetherDevCharSelectWidget.h"
+#include "IdiotsTogether/UI/IdiotsTogetherPhaseHUDWidget.h"
 #include "IdiotsTogether/IdiotsTogether.h"
+
 
 AIdiotsTogetherPlayerController::AIdiotsTogetherPlayerController()
 {
@@ -71,6 +74,23 @@ void AIdiotsTogetherPlayerController::BeginPlay()
 		{
 			UE_LOG(LogIdiotsTogether, Error, TEXT("[M3A DEV UI] FAILED to create DevCharSelectWidgetInstance on %s"), *GetName());
 		}
+
+		TSubclassOf<UIdiotsTogetherPhaseHUDWidget> PhaseWidgetClassToUse = PhaseHUDWidgetClass;
+		if (!PhaseWidgetClassToUse)
+		{
+			PhaseWidgetClassToUse = UIdiotsTogetherPhaseHUDWidget::StaticClass();
+		}
+
+		PhaseHUDWidgetInstance = CreateWidget<UIdiotsTogetherPhaseHUDWidget>(this, PhaseWidgetClassToUse);
+		if (PhaseHUDWidgetInstance)
+		{
+			PhaseHUDWidgetInstance->AddToViewport(2);
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3C UI] PhaseHUDWidgetInstance created and added to viewport (ZOrder=2) on %s"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogIdiotsTogether, Error, TEXT("[M3C UI] FAILED to create PhaseHUDWidgetInstance on %s"), *GetName());
+		}
 	}
 }
 
@@ -102,10 +122,14 @@ void AIdiotsTogetherPlayerController::SetupInputComponent()
 		InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectMuscle);
 		InputComponent->BindKey(EKeys::Four, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectIntern);
 		InputComponent->BindKey(EKeys::Five, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectRandom);
+		InputComponent->BindKey(EKeys::Six, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevAdvancePhase);
+		InputComponent->BindKey(EKeys::Seven, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceSuccess);
+		InputComponent->BindKey(EKeys::Eight, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceFailure);
 		InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &AIdiotsTogetherPlayerController::ToggleDevCursor);
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Bound keys 1-5 and Tab for character selection shortcuts."));
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Bound keys 1-5 & Tab for character selection, keys 6-8 for phase debug controls."));
 	}
 }
+
 
 void AIdiotsTogetherPlayerController::ToggleDevCursor()
 {
@@ -179,3 +203,67 @@ void AIdiotsTogetherPlayerController::DevSelectRandom()
 	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A SELECT REQUEST] M3A SELECT REQUEST: RequestedType=Random (5)"));
 	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Random);
 }
+
+void AIdiotsTogetherPlayerController::DevAdvancePhase()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] DevAdvancePhase pressed"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] Sending ServerDevAdvancePhase RPC"), *GetNetworkRoleString(this));
+	ServerDevAdvancePhase();
+}
+
+void AIdiotsTogetherPlayerController::DevForceSuccess()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] DevForceSuccess pressed"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] Sending ServerDevForceSuccess RPC"), *GetNetworkRoleString(this));
+	ServerDevForceSuccess();
+}
+
+void AIdiotsTogetherPlayerController::DevForceFailure()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] DevForceFailure pressed"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] Sending ServerDevForceFailure RPC"), *GetNetworkRoleString(this));
+	ServerDevForceFailure();
+}
+
+void AIdiotsTogetherPlayerController::ServerDevAdvancePhase_Implementation()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] ServerDevAdvancePhase received"), *GetNetworkRoleString(this));
+	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	{
+		GM->AdvancePhase();
+	}
+}
+
+bool AIdiotsTogetherPlayerController::ServerDevAdvancePhase_Validate()
+{
+	return true;
+}
+
+void AIdiotsTogetherPlayerController::ServerDevForceSuccess_Implementation()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] ServerDevForceSuccess received"), *GetNetworkRoleString(this));
+	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	{
+		GM->ForcePhaseSuccess();
+	}
+}
+
+bool AIdiotsTogetherPlayerController::ServerDevForceSuccess_Validate()
+{
+	return true;
+}
+
+void AIdiotsTogetherPlayerController::ServerDevForceFailure_Implementation()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] ServerDevForceFailure received"), *GetNetworkRoleString(this));
+	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	{
+		GM->ForcePhaseFailure();
+	}
+}
+
+bool AIdiotsTogetherPlayerController::ServerDevForceFailure_Validate()
+{
+	return true;
+}
+

@@ -29,6 +29,21 @@ public:
 	void DevSelectRandom();
 	void ToggleDevCursor();
 
+	// M3B Debug Phase Controls (Keys 6, 7, 8)
+	void DevAdvancePhase();
+	void DevForceSuccess();
+	void DevForceFailure();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerDevAdvancePhase();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerDevForceSuccess();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerDevForceFailure();
+
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -44,4 +59,10 @@ protected:
 
 	UPROPERTY()
 	class UIdiotsTogetherDevCharSelectWidget* DevCharSelectWidgetInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|UI")
+	TSubclassOf<class UIdiotsTogetherPhaseHUDWidget> PhaseHUDWidgetClass;
+
+	UPROPERTY()
+	class UIdiotsTogetherPhaseHUDWidget* PhaseHUDWidgetInstance;
 };
