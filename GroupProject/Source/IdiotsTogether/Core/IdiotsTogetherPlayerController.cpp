@@ -125,8 +125,9 @@ void AIdiotsTogetherPlayerController::SetupInputComponent()
 		InputComponent->BindKey(EKeys::Six, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevAdvancePhase);
 		InputComponent->BindKey(EKeys::Seven, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceSuccess);
 		InputComponent->BindKey(EKeys::Eight, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceFailure);
+		InputComponent->BindKey(EKeys::Nine, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevCompleteTestObjective);
 		InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &AIdiotsTogetherPlayerController::ToggleDevCursor);
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Bound keys 1-5 & Tab for character selection, keys 6-8 for phase debug controls."));
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[DEV INPUT] Bound keys 1-5 & Tab for character selection, keys 6-8 for phase debug, key 9 for objective completion debug."));
 	}
 }
 
@@ -225,6 +226,12 @@ void AIdiotsTogetherPlayerController::DevForceFailure()
 	ServerDevForceFailure();
 }
 
+void AIdiotsTogetherPlayerController::DevCompleteTestObjective()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D/DEV][%s] DevCompleteTestObjective pressed (Key 9)"), *GetNetworkRoleString(this));
+	ServerDevCompleteTestObjective(TEXT("TEST_OBJECTIVE_01"));
+}
+
 void AIdiotsTogetherPlayerController::ServerDevAdvancePhase_Implementation()
 {
 	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] ServerDevAdvancePhase received"), *GetNetworkRoleString(this));
@@ -263,6 +270,22 @@ void AIdiotsTogetherPlayerController::ServerDevForceFailure_Implementation()
 }
 
 bool AIdiotsTogetherPlayerController::ServerDevForceFailure_Validate()
+{
+	return true;
+}
+
+void AIdiotsTogetherPlayerController::ServerDevCompleteTestObjective_Implementation(const FString& ObjectiveID)
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D/DEV][%s] ServerDevCompleteTestObjective received for ObjID=%s"),
+		*GetNetworkRoleString(this), *ObjectiveID);
+
+	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	{
+		GM->CompleteObjective(ObjectiveID);
+	}
+}
+
+bool AIdiotsTogetherPlayerController::ServerDevCompleteTestObjective_Validate(const FString& ObjectiveID)
 {
 	return true;
 }

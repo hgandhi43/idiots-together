@@ -2,6 +2,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Net/UnrealNetwork.h"
+#include "IdiotsTogether/Core/IdiotsTogetherGameModeBase.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
 AIdiotsTogetherTestBox::AIdiotsTogetherTestBox()
@@ -21,6 +22,7 @@ AIdiotsTogetherTestBox::AIdiotsTogetherTestBox()
 	BoxMesh->SetMobility(EComponentMobility::Movable);
 
 	InteractionPromptText = FText::FromString(TEXT("Press E to Interact"));
+	ObjectiveIDToComplete = TEXT("TEST_OBJECTIVE_01");
 	bIsActivated = false;
 	bReplicates = true;
 }
@@ -74,6 +76,17 @@ void AIdiotsTogetherTestBox::Interact_Implementation(APawn* InstigatorPawn)
 			InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"),
 			bIsActivated ? TEXT("True") : TEXT("False"),
 			*TargetRotation.ToString());
+
+		if (!ObjectiveIDToComplete.IsEmpty())
+		{
+			if (UWorld* World = GetWorld())
+			{
+				if (AIdiotsTogetherGameModeBase* GM = World->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+				{
+					GM->CompleteObjective(ObjectiveIDToComplete);
+				}
+			}
+		}
 	}
 }
 

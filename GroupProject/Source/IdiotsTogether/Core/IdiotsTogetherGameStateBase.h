@@ -6,6 +6,7 @@
 #include "IdiotsTogetherGameStateBase.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRoundPhaseChanged, EIdiotsTogetherRoundPhase, NewPhase, EIdiotsTogetherRoundPhase, OldPhase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnObjectiveStatesChanged);
 
 UCLASS()
 class IDIOTSTOGETHER_API AIdiotsTogetherGameStateBase : public AGameStateBase
@@ -35,8 +36,14 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	FText ScenarioDescription;
 
+	UPROPERTY(ReplicatedUsing = OnRep_ObjectiveStates, BlueprintReadOnly, Category = "Idiots Together|Scenario")
+	TArray<FIdiotsTogetherObjectiveState> ObjectiveStates;
+
 	UPROPERTY(BlueprintAssignable, Category = "Idiots Together|Scenario")
 	FOnRoundPhaseChanged OnRoundPhaseChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Idiots Together|Scenario")
+	FOnObjectiveStatesChanged OnObjectiveStatesChanged;
 
 	UFUNCTION()
 	void OnRep_CurrentRoundPhase(EIdiotsTogetherRoundPhase OldPhase);
@@ -49,6 +56,9 @@ public:
 
 	UFUNCTION()
 	void OnRep_ActiveScenarioID();
+
+	UFUNCTION()
+	void OnRep_ObjectiveStates();
 
 	void SetCurrentRoundPhase_Server(EIdiotsTogetherRoundPhase NewPhase);
 };

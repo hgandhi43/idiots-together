@@ -53,7 +53,7 @@ TSharedRef<SWidget> UIdiotsTogetherPhaseHUDWidget::RebuildWidget()
 			.WrapTextAt(440.0f)
 		];
 
-	// SubHeader / Plan Your Move
+	// SubHeader / Plan Your Move / Objectives Header
 	MainBox->AddSlot()
 		.AutoHeight()
 		.HAlign(HAlign_Center)
@@ -77,6 +77,15 @@ TSharedRef<SWidget> UIdiotsTogetherPhaseHUDWidget::RebuildWidget()
 			.Font(FCoreStyle::GetDefaultFontStyle("Bold", 14))
 			.ColorAndOpacity(FSlateColor(FLinearColor::Yellow))
 			.Justification(ETextJustify::Center)
+		];
+
+	// Objectives List Box
+	MainBox->AddSlot()
+		.AutoHeight()
+		.HAlign(HAlign_Center)
+		.Padding(6.0f, 4.0f)
+		[
+			SAssignNew(ObjectivesBox, SVerticalBox)
 		];
 
 	// Footer / Team instructions
@@ -128,7 +137,11 @@ void UIdiotsTogetherPhaseHUDWidget::NativeConstruct()
 	{
 		if (AIdiotsTogetherGameStateBase* GS = World->GetGameState<AIdiotsTogetherGameStateBase>())
 		{
+			GS->OnRoundPhaseChanged.RemoveDynamic(this, &UIdiotsTogetherPhaseHUDWidget::OnRoundPhaseChanged);
 			GS->OnRoundPhaseChanged.AddDynamic(this, &UIdiotsTogetherPhaseHUDWidget::OnRoundPhaseChanged);
+
+			GS->OnObjectiveStatesChanged.RemoveDynamic(this, &UIdiotsTogetherPhaseHUDWidget::OnObjectiveStatesChanged);
+			GS->OnObjectiveStatesChanged.AddDynamic(this, &UIdiotsTogetherPhaseHUDWidget::OnObjectiveStatesChanged);
 		}
 	}
 
@@ -142,6 +155,11 @@ void UIdiotsTogetherPhaseHUDWidget::NativeTick(const FGeometry& MyGeometry, floa
 }
 
 void UIdiotsTogetherPhaseHUDWidget::OnRoundPhaseChanged(EIdiotsTogetherRoundPhase NewPhase, EIdiotsTogetherRoundPhase OldPhase)
+{
+	UpdateHUD();
+}
+
+void UIdiotsTogetherPhaseHUDWidget::OnObjectiveStatesChanged()
 {
 	UpdateHUD();
 }
@@ -164,8 +182,10 @@ void UIdiotsTogetherPhaseHUDWidget::UpdateHUD()
 
 	EIdiotsTogetherRoundPhase Phase = GS->CurrentRoundPhase;
 
-	// Only Briefing and Planning phases show the HUD widget
-	if (Phase != EIdiotsTogetherRoundPhase::Briefing && Phase != EIdiotsTogetherRoundPhase::Planning)
+	// Show HUD during Briefing, Planning, and Execution phases
+	if (Phase != EIdiotsTogetherRoundPhase::Briefing &&
+		Phase != EIdiotsTogetherRoundPhase::Planning &&
+		Phase != EIdiotsTogetherRoundPhase::Execution)
 	{
 		SetVisibility(ESlateVisibility::Collapsed);
 		return;
@@ -206,6 +226,10 @@ void UIdiotsTogetherPhaseHUDWidget::UpdateHUD()
 		{
 			FooterTextBlock->SetText(FText::GetEmpty());
 		}
+		if (ObjectivesBox.IsValid())
+		{
+			ObjectivesBox->ClearChildren();
+		}
 	}
 	else if (Phase == EIdiotsTogetherRoundPhase::Planning)
 	{
@@ -224,6 +248,64 @@ void UIdiotsTogetherPhaseHUDWidget::UpdateHUD()
 		if (FooterTextBlock.IsValid())
 		{
 			FooterTextBlock->SetText(FText::FromString(TEXT("Talk to your team and plan your approach.")));
+		}
+		if (ObjectivesBox.IsValid())
+		{
+			ObjectivesBox->ClearChildren();
+		}
+	}
+	else if (Phase == EIdiotsTogetherRoundPhase::Execution)
+	{
+		if (HeaderTextBlock.IsValid())
+		{
+			HeaderTextBlock->SetText(FText::FromString(TEXT("=========================\n       EXECUTION\n=========================")));
+		}
+		if (SubHeaderTextBlock.IsValid())
+		{
+			SubHeaderTextBlock->SetText(FText::FromString(TEXT("OBJECTIVES")));
+		}
+
+		int32 Minutes = SecondsLeft / 60;
+		int32 Seconds = SecondsLeft % 60;
+		if (CountdownTextBlock.IsValid())
+		{
+			CountdownTextBlock->SetText(FText::FromString(FString::Printf(TEXT("Time: %02d:%02d"), Minutes, Seconds)));
+		}
+
+		if (FooterTextBlock.IsValid())
+		{
+			FooterTextBlock->SetText(FText::FromString(TEXT("Complete all required objectives before time runs out.")));
+		}
+
+		if (ObjectivesBox.IsValid())
+		{
+			ObjectivesBox->ClearChildren();
+
+			for (const FIdiotsTogetherObjectiveState& ObjState : GS->ObjectiveStates)
+			{
+				FString CheckboxStr = ObjState.bIsCompleted ? TEXT("[X] ") : TEXT("[ ] ");
+				FString NameStr = ObjState.DisplayName.IsEmpty() ? ObjState.ObjectiveID : ObjState.DisplayName.ToString();
+				if (!ObjState.bIsRequired)
+				{
+					NameStr += TEXT(" (Optional)");
+				}
+
+				FText ObjText = FText::FromString(CheckboxStr + NameStr);
+				FLinearColor TextColor = ObjState.bIsCompleted ?
+					FLinearColor(0.2f, 1.0f, 0.3f, 1.0f) :
+					(ObjState.bIsRequired ? FLinearColor::White : FLinearColor(0.7f, 0.7f, 0.7f, 1.0f));
+
+				ObjectivesBox->AddSlot()
+					.AutoHeight()
+					.HAlign(HAlign_Left)
+					.Padding(2.0f)
+					[
+						SNew(STextBlock)
+						.Text(ObjText)
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 12))
+						.ColorAndOpacity(FSlateColor(TextColor))
+					];
+			}
 		}
 	}
 }

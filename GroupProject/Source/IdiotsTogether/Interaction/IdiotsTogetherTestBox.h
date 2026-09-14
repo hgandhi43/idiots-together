@@ -25,6 +25,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction")
 	FText InteractionPromptText;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Objective")
+	FString ObjectiveIDToComplete;
+
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Idiots Together|State")
 	bool bIsActivated;
 

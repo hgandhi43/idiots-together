@@ -146,7 +146,24 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->PlanningDuration : 5.0f;
 		break;
 	case EIdiotsTogetherRoundPhase::Execution:
-		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->ExecutionDuration : 10.0f;
+		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->ExecutionDuration : 20.0f;
+		// Initialize runtime objectives from scenario definition
+		GS->ObjectiveStates.Empty();
+		if (ActiveScenarioDefinition)
+		{
+			for (const FIdiotsTogetherObjectiveDefinition& ObjDef : ActiveScenarioDefinition->Objectives)
+			{
+				FIdiotsTogetherObjectiveState State;
+				State.ObjectiveID = ObjDef.ObjectiveID;
+				State.DisplayName = ObjDef.DisplayName;
+				State.Description = ObjDef.Description;
+				State.bIsRequired = ObjDef.bIsRequired;
+				State.bIsCompleted = false;
+				GS->ObjectiveStates.Add(State);
+			}
+		}
+		GS->OnObjectiveStatesChanged.Broadcast();
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution phase started with %d active objectives."), GS->ObjectiveStates.Num());
 		break;
 	case EIdiotsTogetherRoundPhase::Success:
 	case EIdiotsTogetherRoundPhase::Failure:
@@ -211,8 +228,17 @@ void AIdiotsTogetherGameModeBase::OnPhaseTimerExpired()
 		TransitionToPhase(EIdiotsTogetherRoundPhase::Execution);
 		break;
 	case EIdiotsTogetherRoundPhase::Execution:
-		// Default timer expiration during Execution in M3B transitions to Success
-		TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
+		// Timer expiration during Execution when required objectives are incomplete results in Failure
+		if (CheckAllRequiredObjectivesCompleted())
+		{
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution timer expired and all required objectives were complete -> SUCCESS"));
+			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
+		}
+		else
+		{
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution timer expired with incomplete required objectives -> FAILURE"));
+			TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
+		}
 		break;
 	case EIdiotsTogetherRoundPhase::Success:
 	case EIdiotsTogetherRoundPhase::Failure:
@@ -257,4 +283,80 @@ void AIdiotsTogetherGameModeBase::ForcePhaseFailure()
 
 	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] GameMode ForcePhaseFailure()"), *GetNetworkRoleString(this));
 	TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
+}
+
+bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
+	if (!GS || GS->CurrentRoundPhase != EIdiotsTogetherRoundPhase::Execution)
+	{
+		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Cannot complete objective '%s' - Phase is not Execution!"), *ObjectiveID);
+		return false;
+	}
+
+	bool bFoundAndUpdated = false;
+	for (FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
+	{
+		if (State.ObjectiveID.Equals(ObjectiveID, ESearchCase::IgnoreCase))
+		{
+			if (State.bIsCompleted)
+			{
+				UE_LOG(LogIdiotsTogether, Log, TEXT("[M3D GAMEMODE] Objective '%s' is already completed."), *ObjectiveID);
+				return false;
+			}
+			State.bIsCompleted = true;
+			bFoundAndUpdated = true;
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Objective '%s' ('%s') COMPLETED!"),
+				*State.ObjectiveID, *State.DisplayName.ToString());
+			break;
+		}
+	}
+
+	if (bFoundAndUpdated)
+	{
+		GS->OnObjectiveStatesChanged.Broadcast();
+
+		if (CheckAllRequiredObjectivesCompleted())
+		{
+			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] All required objectives COMPLETED! Transitioning early to SUCCESS."));
+			GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
+			GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
+		}
+		return true;
+	}
+
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] ObjectiveID '%s' not found in active objective states!"), *ObjectiveID);
+	return false;
+}
+
+bool AIdiotsTogetherGameModeBase::CheckAllRequiredObjectivesCompleted() const
+{
+	const AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
+	if (!GS)
+	{
+		return false;
+	}
+
+	int32 RequiredCount = 0;
+	int32 RequiredCompletedCount = 0;
+
+	for (const FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
+	{
+		if (State.bIsRequired)
+		{
+			RequiredCount++;
+			if (State.bIsCompleted)
+			{
+				RequiredCompletedCount++;
+			}
+		}
+	}
+
+	return RequiredCount == 0 || (RequiredCompletedCount >= RequiredCount);
 }

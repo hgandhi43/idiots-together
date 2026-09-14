@@ -20,6 +20,7 @@ void AIdiotsTogetherGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimePr
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ActiveScenarioID);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ScenarioDisplayName);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ScenarioDescription);
+	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ObjectiveStates);
 }
 
 void AIdiotsTogetherGameStateBase::OnRep_CurrentRoundPhase(EIdiotsTogetherRoundPhase OldPhase)
@@ -42,6 +43,14 @@ void AIdiotsTogetherGameStateBase::OnRep_RemainingPhaseTime()
 void AIdiotsTogetherGameStateBase::OnRep_ActiveScenarioID()
 {
 	UE_LOG(LogIdiotsTogether, Log, TEXT("[GAMESTATE REPL] OnRep_ActiveScenarioID: ActiveScenarioID=%s"), *ActiveScenarioID);
+}
+
+void AIdiotsTogetherGameStateBase::OnRep_ObjectiveStates()
+{
+	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D][%s] OnRep_ObjectiveStates: %d objective states updated"),
+		*GetNetworkRoleString(this), ObjectiveStates.Num());
+
+	OnObjectiveStatesChanged.Broadcast();
 }
 
 void AIdiotsTogetherGameStateBase::SetCurrentRoundPhase_Server(EIdiotsTogetherRoundPhase NewPhase)

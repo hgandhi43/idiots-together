@@ -6,6 +6,7 @@
 #include "IdiotsTogetherPhaseHUDWidget.generated.h"
 
 class STextBlock;
+class SVerticalBox;
 class SWidget;
 
 UCLASS()
@@ -23,6 +24,9 @@ public:
 	UFUNCTION()
 	void OnRoundPhaseChanged(EIdiotsTogetherRoundPhase NewPhase, EIdiotsTogetherRoundPhase OldPhase);
 
+	UFUNCTION()
+	void OnObjectiveStatesChanged();
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
@@ -32,5 +36,6 @@ protected:
 	TSharedPtr<STextBlock> SubHeaderTextBlock;
 	TSharedPtr<STextBlock> CountdownTextBlock;
 	TSharedPtr<STextBlock> FooterTextBlock;
+	TSharedPtr<SVerticalBox> ObjectivesBox;
 	TSharedPtr<SWidget> RootContainer;
 };

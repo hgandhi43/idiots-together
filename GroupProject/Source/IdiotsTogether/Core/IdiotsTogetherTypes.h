@@ -28,6 +28,45 @@ enum class EIdiotsTogetherRoundPhase : uint8
 	NextRound   UMETA(DisplayName = "Next Round")
 };
 
+USTRUCT(BlueprintType)
+struct FIdiotsTogetherObjectiveDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
+	FString ObjectiveID;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
+	FText DisplayName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
+	FText Description;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
+	bool bIsRequired = true;
+};
+
+USTRUCT(BlueprintType)
+struct FIdiotsTogetherObjectiveState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	FString ObjectiveID;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	FText Description;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	bool bIsRequired = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	bool bIsCompleted = false;
+};
+
 inline FString GetNetworkRoleString(const UObject* WorldContextObject)
 {
 	if (!WorldContextObject)

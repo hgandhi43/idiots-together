@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "IdiotsTogetherTypes.h"
 #include "IdiotsTogetherScenarioDefinition.generated.h"
 
 UCLASS(BlueprintType, Blueprintable)
@@ -35,4 +36,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Scenario|Rounds")
 	int32 TargetRoundCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Scenario|Objectives")
+	TArray<FIdiotsTogetherObjectiveDefinition> Objectives;
 };

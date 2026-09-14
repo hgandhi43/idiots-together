@@ -33,6 +33,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Scenario")
 	void ForcePhaseFailure();
 
+	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Objective")
+	bool CompleteObjective(const FString& ObjectiveID);
+
+	bool CheckAllRequiredObjectivesCompleted() const;
+
 protected:
 	virtual void BeginPlay() override;
 

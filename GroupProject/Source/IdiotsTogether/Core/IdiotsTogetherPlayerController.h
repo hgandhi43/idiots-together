@@ -43,6 +43,12 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerDevForceFailure();
 
+	// M3D Debug Objective Controls (Key 9)
+	void DevCompleteTestObjective();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerDevCompleteTestObjective(const FString& ObjectiveID);
+
 
 protected:
 	virtual void BeginPlay() override;
