@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "IdiotsTogetherTypes.h"
 #include "IdiotsTogetherSettings.generated.h"
 
 /**
@@ -34,4 +35,15 @@ public:
 	/** Used before the server has assigned a colour. */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Players")
 	FLinearColor UnassignedPlayerColor;
+
+	/** Round phases in which players may interact with objects. Briefing/Planning are hands-off by design. */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TArray<EIdiotsTogetherRoundPhase> InteractablePhases;
+
+	/**
+	 * Development builds only: let non-host clients run dev commands (phase skip, force result...).
+	 * Off by default so dev commands are host-only. Has no effect in Shipping, where dev commands do not exist.
+	 */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Development")
+	bool bAllowClientDevCommands;
 };

@@ -41,6 +41,9 @@ public:
 
 	bool CheckAllRequiredObjectivesCompleted() const;
 
+	/** Dev builds: completes the first incomplete objective (required ones first). Returns false in Shipping. */
+	bool DevCompleteNextObjective();
+
 protected:
 	virtual void BeginPlay() override;
 

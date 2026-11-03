@@ -28,6 +28,16 @@ enum class EIdiotsTogetherRoundPhase : uint8
 	NextRound   UMETA(DisplayName = "Next Round")
 };
 
+/** Dev-only commands (see AIdiotsTogetherPlayerController::ServerDevCommand). Never executed in Shipping. */
+UENUM()
+enum class EIdiotsTogetherDevCommand : uint8
+{
+	AdvancePhase,
+	ForceSuccess,
+	ForceFailure,
+	CompleteNextObjective
+};
+
 /** Placeholder look for an identity until skeletal characters arrive (P7.1). */
 USTRUCT(BlueprintType)
 struct FIdiotsTogetherIdentityVisual

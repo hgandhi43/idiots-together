@@ -1,5 +1,6 @@
 #include "IdiotsTogetherGameStateBase.h"
 #include "Net/UnrealNetwork.h"
+#include "IdiotsTogetherSettings.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
 AIdiotsTogetherGameStateBase::AIdiotsTogetherGameStateBase()
@@ -61,4 +62,9 @@ void AIdiotsTogetherGameStateBase::SetCurrentRoundPhase_Server(EIdiotsTogetherRo
 		CurrentRoundPhase = NewPhase;
 		OnRoundPhaseChanged.Broadcast(CurrentRoundPhase, OldPhase);
 	}
+}
+
+bool AIdiotsTogetherGameStateBase::AreInteractionsAllowed() const
+{
+	return UIdiotsTogetherSettings::Get()->InteractablePhases.Contains(CurrentRoundPhase);
 }

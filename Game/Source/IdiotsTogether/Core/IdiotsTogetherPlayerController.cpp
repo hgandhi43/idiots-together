@@ -1,14 +1,13 @@
 #include "IdiotsTogetherPlayerController.h"
-#include "EnhancedInputSubsystemInterface.h"
-#include "EnhancedInputSubsystems.h"
 #include "IdiotsTogetherPlayerState.h"
 #include "IdiotsTogetherCharacterRules.h"
 #include "IdiotsTogetherGameModeBase.h"
+#include "IdiotsTogetherSettings.h"
 #include "IdiotsTogether/UI/IdiotsTogetherInteractionWidget.h"
 #include "IdiotsTogether/UI/IdiotsTogetherDevCharSelectWidget.h"
 #include "IdiotsTogether/UI/IdiotsTogetherPhaseHUDWidget.h"
 #include "IdiotsTogether/IdiotsTogether.h"
-
+#include "UObject/ConstructorHelpers.h"
 
 AIdiotsTogetherPlayerController::AIdiotsTogetherPlayerController()
 {
@@ -26,24 +25,26 @@ void AIdiotsTogetherPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController())
+	if (!IsLocalController())
 	{
-		FInputModeGameOnly InputMode;
-		SetInputMode(InputMode);
-		bShowMouseCursor = false;
+		return;
 	}
 
-	if (IsLocalController() && InteractionWidgetClass)
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+	bShowMouseCursor = false;
+
+	if (InteractionWidgetClass)
 	{
 		InteractionWidgetInstance = CreateWidget<UIdiotsTogetherInteractionWidget>(this, InteractionWidgetClass);
 		if (InteractionWidgetInstance)
 		{
-			InteractionWidgetInstance->AddToViewport(10);
+			InteractionWidgetInstance->AddToViewport(InteractionPromptZOrder);
 			InteractionWidgetInstance->HidePrompt();
 		}
 	}
 
-	if (IsLocalController())
+#if !UE_BUILD_SHIPPING
 	{
 		TSubclassOf<UIdiotsTogetherDevCharSelectWidget> WidgetClassToUse = DevCharSelectWidgetClass;
 		if (!WidgetClassToUse)
@@ -54,29 +55,29 @@ void AIdiotsTogetherPlayerController::BeginPlay()
 		DevCharSelectWidgetInstance = CreateWidget<UIdiotsTogetherDevCharSelectWidget>(this, WidgetClassToUse);
 		if (DevCharSelectWidgetInstance)
 		{
-			DevCharSelectWidgetInstance->AddToViewport(5);
-			UE_LOG(LogIdiotsTogetherUI, Verbose, TEXT("Dev character-select widget created on %s"), *GetName());
+			DevCharSelectWidgetInstance->AddToViewport(DevWidgetZOrder);
 		}
 		else
 		{
 			UE_LOG(LogIdiotsTogetherUI, Error, TEXT("Failed to create dev character-select widget on %s"), *GetName());
 		}
+	}
+#endif
 
-		TSubclassOf<UIdiotsTogetherPhaseHUDWidget> PhaseWidgetClassToUse = PhaseHUDWidgetClass;
-		if (!PhaseWidgetClassToUse)
-		{
-			PhaseWidgetClassToUse = UIdiotsTogetherPhaseHUDWidget::StaticClass();
-		}
+	TSubclassOf<UIdiotsTogetherPhaseHUDWidget> PhaseWidgetClassToUse = PhaseHUDWidgetClass;
+	if (!PhaseWidgetClassToUse)
+	{
+		PhaseWidgetClassToUse = UIdiotsTogetherPhaseHUDWidget::StaticClass();
+	}
 
-		PhaseHUDWidgetInstance = CreateWidget<UIdiotsTogetherPhaseHUDWidget>(this, PhaseWidgetClassToUse);
-		if (PhaseHUDWidgetInstance)
-		{
-			PhaseHUDWidgetInstance->AddToViewport(2);
-		}
-		else
-		{
-			UE_LOG(LogIdiotsTogetherUI, Error, TEXT("Failed to create phase HUD widget on %s"), *GetName());
-		}
+	PhaseHUDWidgetInstance = CreateWidget<UIdiotsTogetherPhaseHUDWidget>(this, PhaseWidgetClassToUse);
+	if (PhaseHUDWidgetInstance)
+	{
+		PhaseHUDWidgetInstance->AddToViewport(PhaseHUDZOrder);
+	}
+	else
+	{
+		UE_LOG(LogIdiotsTogetherUI, Error, TEXT("Failed to create phase HUD widget on %s"), *GetName());
 	}
 }
 
@@ -101,8 +102,10 @@ void AIdiotsTogetherPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
+#if !UE_BUILD_SHIPPING
 	if (InputComponent)
 	{
+		// Character selection keys live here until the lobby (P1.3) provides real UI.
 		InputComponent->BindKey(EKeys::One, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectBoss);
 		InputComponent->BindKey(EKeys::Two, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectNerd);
 		InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevSelectMuscle);
@@ -111,11 +114,11 @@ void AIdiotsTogetherPlayerController::SetupInputComponent()
 		InputComponent->BindKey(EKeys::Six, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevAdvancePhase);
 		InputComponent->BindKey(EKeys::Seven, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceSuccess);
 		InputComponent->BindKey(EKeys::Eight, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevForceFailure);
-		InputComponent->BindKey(EKeys::Nine, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevCompleteTestObjective);
+		InputComponent->BindKey(EKeys::Nine, IE_Pressed, this, &AIdiotsTogetherPlayerController::DevCompleteNextObjective);
 		InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &AIdiotsTogetherPlayerController::ToggleDevCursor);
 	}
+#endif
 }
-
 
 void AIdiotsTogetherPlayerController::ToggleDevCursor()
 {
@@ -132,8 +135,11 @@ void AIdiotsTogetherPlayerController::ToggleDevCursor()
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
 	}
-	UE_LOG(LogIdiotsTogetherDev, Verbose, TEXT("Dev cursor %s"), bShowMouseCursor ? TEXT("ON") : TEXT("OFF"));
 }
+
+// ---------------------------------------------------------------------------
+// Character selection
+// ---------------------------------------------------------------------------
 
 void AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Implementation(EIdiotsTogetherCharacterType Selection)
 {
@@ -156,106 +162,64 @@ bool AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Validate(E
 	return IdiotsTogetherCharacterRules::IsValidSelectionRequest(Selection);
 }
 
-void AIdiotsTogetherPlayerController::DevSelectBoss()
+void AIdiotsTogetherPlayerController::DevSelectBoss()   { ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Boss); }
+void AIdiotsTogetherPlayerController::DevSelectNerd()   { ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Nerd); }
+void AIdiotsTogetherPlayerController::DevSelectMuscle() { ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Muscle); }
+void AIdiotsTogetherPlayerController::DevSelectIntern() { ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Intern); }
+void AIdiotsTogetherPlayerController::DevSelectRandom() { ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Random); }
+
+// ---------------------------------------------------------------------------
+// Dev commands (never active in Shipping)
+// ---------------------------------------------------------------------------
+
+void AIdiotsTogetherPlayerController::DevAdvancePhase()          { ServerDevCommand(EIdiotsTogetherDevCommand::AdvancePhase); }
+void AIdiotsTogetherPlayerController::DevForceSuccess()          { ServerDevCommand(EIdiotsTogetherDevCommand::ForceSuccess); }
+void AIdiotsTogetherPlayerController::DevForceFailure()          { ServerDevCommand(EIdiotsTogetherDevCommand::ForceFailure); }
+void AIdiotsTogetherPlayerController::DevCompleteNextObjective() { ServerDevCommand(EIdiotsTogetherDevCommand::CompleteNextObjective); }
+
+bool AIdiotsTogetherPlayerController::IsDevCommandAllowed() const
 {
-	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Boss);
+#if UE_BUILD_SHIPPING
+	return false;
+#else
+	// On a listen server the host's controller is the only local one on the server.
+	return IsLocalController() || UIdiotsTogetherSettings::Get()->bAllowClientDevCommands;
+#endif
 }
 
-void AIdiotsTogetherPlayerController::DevSelectNerd()
+bool AIdiotsTogetherPlayerController::ServerDevCommand_Validate(EIdiotsTogetherDevCommand Command)
 {
-	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Nerd);
-}
-
-void AIdiotsTogetherPlayerController::DevSelectMuscle()
-{
-	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Muscle);
-}
-
-void AIdiotsTogetherPlayerController::DevSelectIntern()
-{
-	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Intern);
-}
-
-void AIdiotsTogetherPlayerController::DevSelectRandom()
-{
-	ServerRequestCharacterSelection(EIdiotsTogetherCharacterType::Random);
-}
-
-void AIdiotsTogetherPlayerController::DevAdvancePhase()
-{
-	ServerDevAdvancePhase();
-}
-
-void AIdiotsTogetherPlayerController::DevForceSuccess()
-{
-	ServerDevForceSuccess();
-}
-
-void AIdiotsTogetherPlayerController::DevForceFailure()
-{
-	ServerDevForceFailure();
-}
-
-void AIdiotsTogetherPlayerController::DevCompleteTestObjective()
-{
-	ServerDevCompleteTestObjective(TEXT("TEST_OBJECTIVE_01"));
-}
-
-void AIdiotsTogetherPlayerController::ServerDevAdvancePhase_Implementation()
-{
-	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ServerDevAdvancePhase received"), *GetNetworkRoleString(this));
-	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
-	{
-		GM->AdvancePhase();
-	}
-}
-
-bool AIdiotsTogetherPlayerController::ServerDevAdvancePhase_Validate()
-{
+#if UE_BUILD_SHIPPING
+	return false; // Dev commands do not exist in Shipping; a client sending one is cheating.
+#else
 	return true;
+#endif
 }
 
-void AIdiotsTogetherPlayerController::ServerDevForceSuccess_Implementation()
+void AIdiotsTogetherPlayerController::ServerDevCommand_Implementation(EIdiotsTogetherDevCommand Command)
 {
-	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ServerDevForceSuccess received"), *GetNetworkRoleString(this));
-	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+#if !UE_BUILD_SHIPPING
+	if (!IsDevCommandAllowed())
 	{
-		GM->ForcePhaseSuccess();
+		UE_LOG(LogIdiotsTogetherDev, Warning, TEXT("Rejected dev command %d from non-host %s"), static_cast<int32>(Command), *GetName());
+		return;
 	}
-}
 
-bool AIdiotsTogetherPlayerController::ServerDevForceSuccess_Validate()
-{
-	return true;
-}
-
-void AIdiotsTogetherPlayerController::ServerDevForceFailure_Implementation()
-{
-	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ServerDevForceFailure received"), *GetNetworkRoleString(this));
-	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	AIdiotsTogetherGameModeBase* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>() : nullptr;
+	if (!GM)
 	{
-		GM->ForcePhaseFailure();
+		return;
 	}
-}
 
-bool AIdiotsTogetherPlayerController::ServerDevForceFailure_Validate()
-{
-	return true;
-}
+	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("Dev command %s from %s"), *UEnum::GetValueAsString(Command), *GetName());
 
-void AIdiotsTogetherPlayerController::ServerDevCompleteTestObjective_Implementation(const FString& ObjectiveID)
-{
-	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ServerDevCompleteTestObjective received for %s"),
-		*GetNetworkRoleString(this), *ObjectiveID);
-
-	if (AIdiotsTogetherGameModeBase* GM = GetWorld()->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
+	switch (Command)
 	{
-		GM->CompleteObjective(ObjectiveID);
+	case EIdiotsTogetherDevCommand::AdvancePhase:          GM->AdvancePhase(); break;
+	case EIdiotsTogetherDevCommand::ForceSuccess:          GM->ForcePhaseSuccess(); break;
+	case EIdiotsTogetherDevCommand::ForceFailure:          GM->ForcePhaseFailure(); break;
+	case EIdiotsTogetherDevCommand::CompleteNextObjective: GM->DevCompleteNextObjective(); break;
+	default: break;
 	}
+#endif
 }
-
-bool AIdiotsTogetherPlayerController::ServerDevCompleteTestObjective_Validate(const FString& ObjectiveID)
-{
-	return true;
-}
-

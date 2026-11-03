@@ -2,6 +2,7 @@
 #include "IdiotsTogetherPlayerController.h"
 #include "IdiotsTogetherPlayerState.h"
 #include "IdiotsTogetherSettings.h"
+#include "IdiotsTogetherGameStateBase.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -283,6 +284,12 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 
 	AActor* HitActor = bHit ? HitResult.GetActor() : nullptr;
 
+	// Mirror the server's rules so the prompt never promises an interaction the server will refuse.
+	if (HitActor && (!AreInteractionsAllowedNow() || !IsTargetReachable(HitActor, InteractionDistance)))
+	{
+		HitActor = nullptr;
+	}
+
 	if (HitActor && HitActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{
 		if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(HitActor, this))
@@ -389,41 +396,96 @@ void AIdiotsTogetherCharacter::Interact()
 	UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("%s pressed Interact (Focused=%s)"),
 		*GetName(), FocusedActor ? *FocusedActor->GetName() : TEXT("None"));
 
-	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
+	if (FocusedActor)
 	{
-		if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(FocusedActor, this))
-		{
-			if (HasAuthority())
-			{
-				IIdiotsTogetherInteractableInterface::Execute_Interact(FocusedActor, this);
-			}
-			else
-			{
-				ServerInteract(FocusedActor);
-			}
-		}
+		// Host and clients take the same path: on the listen server this runs locally,
+		// so the host is subject to the same server checks as everyone else.
+		ServerInteract(FocusedActor);
 	}
+}
+
+bool AIdiotsTogetherCharacter::AreInteractionsAllowedNow() const
+{
+	const UWorld* World = GetWorld();
+	const AIdiotsTogetherGameStateBase* GS = World ? World->GetGameState<AIdiotsTogetherGameStateBase>() : nullptr;
+	return !GS || GS->AreInteractionsAllowed();
+}
+
+bool AIdiotsTogetherCharacter::IsTargetReachable(const AActor* TargetActor, float MaxDistance) const
+{
+	if (!TargetActor)
+	{
+		return false;
+	}
+
+	FBox TargetBounds = TargetActor->GetComponentsBoundingBox();
+	if (!TargetBounds.IsValid)
+	{
+		const FVector Origin = TargetActor->GetActorLocation();
+		TargetBounds = FBox(Origin, Origin);
+	}
+
+	const FVector ViewLocation = GetPawnViewLocation();
+	if (!IdiotsTogetherInteractionRules::IsWithinReach(ViewLocation, TargetBounds, MaxDistance))
+	{
+		return false;
+	}
+
+	// Line of sight: nothing other than the target may sit between the eyes and the target.
+	const FVector AimPoint = IdiotsTogetherInteractionRules::GetClosestPoint(ViewLocation, TargetBounds);
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, ViewLocation, AimPoint, ECC_Visibility, Params);
+	return !bBlocked || Hit.GetActor() == TargetActor;
+}
+
+bool AIdiotsTogetherCharacter::CanServerAcceptInteraction(AActor* TargetActor)
+{
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	if (!ServerInteractRateLimiter.TryAccept(Now, MinServerInteractInterval))
+	{
+		UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("ServerInteract from %s throttled"), *GetName());
+		return false;
+	}
+
+	if (!IsValid(TargetActor) || TargetActor->GetWorld() != GetWorld()
+		|| !TargetActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
+	{
+		UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("ServerInteract from %s rejected: invalid target"), *GetName());
+		return false;
+	}
+
+	if (!AreInteractionsAllowedNow())
+	{
+		UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("ServerInteract from %s rejected: phase does not allow interaction"), *GetName());
+		return false;
+	}
+
+	if (!IsTargetReachable(TargetActor, InteractionDistance + ServerReachTolerance))
+	{
+		UE_LOG(LogIdiotsTogetherInteraction, Log, TEXT("ServerInteract from %s rejected: %s out of reach or not visible"),
+			*GetName(), *TargetActor->GetName());
+		return false;
+	}
+
+	return IIdiotsTogetherInteractableInterface::Execute_CanInteract(TargetActor, this);
 }
 
 void AIdiotsTogetherCharacter::ServerInteract_Implementation(AActor* TargetActor)
 {
-	UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("ServerInteract from %s on %s"),
-		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("None"));
-
-	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
+	if (!CanServerAcceptInteraction(TargetActor))
 	{
-		float DistSq = FVector::DistSquared(GetActorLocation(), TargetActor->GetActorLocation());
-		if (DistSq <= FMath::Square(InteractionDistance + 200.0f))
-		{
-			if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(TargetActor, this))
-			{
-				IIdiotsTogetherInteractableInterface::Execute_Interact(TargetActor, this);
-			}
-		}
+		return;
 	}
+
+	UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("%s interacts with %s"), *GetName(), *TargetActor->GetName());
+	IIdiotsTogetherInteractableInterface::Execute_Interact(TargetActor, this);
 }
 
 bool AIdiotsTogetherCharacter::ServerInteract_Validate(AActor* TargetActor)
 {
+	// A null/stale target is normal under latency (actor destroyed in flight), so never kick for it.
+	// All real checks happen in CanServerAcceptInteraction.
 	return true;
 }

@@ -13,6 +13,10 @@ UIdiotsTogetherSettings::UIdiotsTogetherSettings()
 	};
 
 	UnassignedPlayerColor = FLinearColor(0.4f, 0.4f, 0.4f, 1.0f);
+
+	InteractablePhases = { EIdiotsTogetherRoundPhase::Execution };
+
+	bAllowClientDevCommands = false;
 }
 
 FLinearColor UIdiotsTogetherSettings::GetPlayerColor(int32 ColorIndex) const

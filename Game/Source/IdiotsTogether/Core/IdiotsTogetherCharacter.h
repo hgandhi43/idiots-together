@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "IdiotsTogetherTypes.h"
+#include "IdiotsTogether/Interaction/IdiotsTogetherInteractionRules.h"
 #include "IdiotsTogetherCharacter.generated.h"
 
 class USpringArmComponent;
@@ -87,13 +88,39 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Interact();
 
+	/**
+	 * Client -> server: "I want to interact with TargetActor". The target is untrusted: the server
+	 * re-checks rate, phase, reach (from its own view of this pawn) and line of sight before acting.
+	 * Also used by the listen-server host (runs locally), so every player goes through the same checks.
+	 */
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerInteract(AActor* TargetActor);
 
+	/** Server-side validation shared by ServerInteract. Returns false (and logs why) if the request must be ignored. */
+	bool CanServerAcceptInteraction(AActor* TargetActor);
+
+	/** True if TargetActor's bounds are within reach of this pawn's eyes and not blocked by other geometry. */
+	bool IsTargetReachable(const AActor* TargetActor, float MaxDistance) const;
+
+	/** True if the current round phase allows interacting (no GameState of ours = allowed). */
+	bool AreInteractionsAllowedNow() const;
+
 	void PerformInteractionTrace();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction")
+	/** Max distance from the pawn's eyes to the closest point of a target's bounds. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction", meta = (ClampMin = "0"))
 	float InteractionDistance = 350.0f;
+
+	/** Extra reach the server allows on top of InteractionDistance, to absorb movement latency. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Interaction", meta = (ClampMin = "0"))
+	float ServerReachTolerance = 75.0f;
+
+	/** Minimum seconds between accepted ServerInteract requests from this player. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Interaction", meta = (ClampMin = "0"))
+	float MinServerInteractInterval = 0.15f;
+
+	/** Server-only throttle state for ServerInteract. */
+	FIdiotsTogetherRateLimiter ServerInteractRateLimiter;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Idiots Together|Interaction")
 	TScriptInterface<class IIdiotsTogetherInteractableInterface> FocusedInteractable;

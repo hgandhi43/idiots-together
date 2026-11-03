@@ -61,4 +61,8 @@ public:
 	void OnRep_ObjectiveStates();
 
 	void SetCurrentRoundPhase_Server(EIdiotsTogetherRoundPhase NewPhase);
+
+	/** True if the current phase is in UIdiotsTogetherSettings::InteractablePhases. Used by client prompt and server RPC alike. */
+	UFUNCTION(BlueprintPure, Category = "Idiots Together|Scenario")
+	bool AreInteractionsAllowed() const;
 };

@@ -381,3 +381,27 @@ bool AIdiotsTogetherGameModeBase::CheckAllRequiredObjectivesCompleted() const
 
 	return RequiredCount == 0 || (RequiredCompletedCount >= RequiredCount);
 }
+
+bool AIdiotsTogetherGameModeBase::DevCompleteNextObjective()
+{
+#if !UE_BUILD_SHIPPING
+	const AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
+	if (!GS)
+	{
+		return false;
+	}
+
+	for (const bool bRequiredPass : { true, false })
+	{
+		for (const FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
+		{
+			if (State.bIsRequired == bRequiredPass && !State.bIsCompleted)
+			{
+				const FString ObjectiveToComplete = State.ObjectiveID; // Copy: CompleteObjective mutates the array.
+				return CompleteObjective(ObjectiveToComplete);
+			}
+		}
+	}
+#endif
+	return false;
+}
