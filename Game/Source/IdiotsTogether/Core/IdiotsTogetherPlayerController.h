@@ -55,10 +55,10 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|UI")
-	TSubclassOf<class UIIdiotsTogetherInteractionWidget> InteractionWidgetClass;
+	TSubclassOf<class UIdiotsTogetherInteractionWidget> InteractionWidgetClass;
 
 	UPROPERTY()
-	class UIIdiotsTogetherInteractionWidget* InteractionWidgetInstance;
+	class UIdiotsTogetherInteractionWidget* InteractionWidgetInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|UI")
 	TSubclassOf<class UIdiotsTogetherDevCharSelectWidget> DevCharSelectWidgetClass;

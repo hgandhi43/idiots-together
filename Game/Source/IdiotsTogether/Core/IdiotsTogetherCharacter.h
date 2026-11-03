@@ -81,7 +81,7 @@ protected:
 	float InteractionDistance = 350.0f;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Idiots Together|Interaction")
-	TScriptInterface<class IIIdiotsTogetherInteractableInterface> FocusedInteractable;
+	TScriptInterface<class IIdiotsTogetherInteractableInterface> FocusedInteractable;
 
 	AActor* FocusedActor;
 

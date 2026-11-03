@@ -1,3 +1,3 @@
 #include "IdiotsTogetherInteractableInterface.h"
 
-// Add default functionality here for any IIIdiotsTogetherInteractableInterface functions that are not pure virtual.
+// Add default functionality here for any IIdiotsTogetherInteractableInterface functions that are not pure virtual.

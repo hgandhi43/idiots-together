@@ -8,7 +8,7 @@
 class UStaticMeshComponent;
 
 UCLASS()
-class IDIOTSTOGETHER_API AIdiotsTogetherTestBox : public AActor, public IIIdiotsTogetherInteractableInterface
+class IDIOTSTOGETHER_API AIdiotsTogetherTestBox : public AActor, public IIdiotsTogetherInteractableInterface
 {
 	GENERATED_BODY()
 
@@ -40,7 +40,7 @@ protected:
 	void OnRep_TargetRotation();
 
 public:
-	// IIIdiotsTogetherInteractableInterface
+	// IIdiotsTogetherInteractableInterface
 	virtual FText GetInteractionPrompt_Implementation(APawn* InstigatorPawn) override;
 	virtual bool CanInteract_Implementation(APawn* InstigatorPawn) override;
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;

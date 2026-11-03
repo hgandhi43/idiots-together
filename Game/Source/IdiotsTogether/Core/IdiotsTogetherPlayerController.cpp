@@ -14,7 +14,7 @@ AIdiotsTogetherPlayerController::AIdiotsTogetherPlayerController()
 	bShowMouseCursor = false;
 	DefaultMouseCursor = EMouseCursor::Default;
 
-	static ConstructorHelpers::FClassFinder<UIIdiotsTogetherInteractionWidget> WidgetClassFinder(TEXT("/Game/UI/WBP_IdiotsTogetherInteractionPrompt.WBP_IdiotsTogetherInteractionPrompt_C"));
+	static ConstructorHelpers::FClassFinder<UIdiotsTogetherInteractionWidget> WidgetClassFinder(TEXT("/Game/UI/WBP_IdiotsTogetherInteractionPrompt.WBP_IdiotsTogetherInteractionPrompt_C"));
 	if (WidgetClassFinder.Succeeded())
 	{
 		InteractionWidgetClass = WidgetClassFinder.Class;
@@ -47,7 +47,7 @@ void AIdiotsTogetherPlayerController::BeginPlay()
 
 	if (IsLocalController() && InteractionWidgetClass)
 	{
-		InteractionWidgetInstance = CreateWidget<UIIdiotsTogetherInteractionWidget>(this, InteractionWidgetClass);
+		InteractionWidgetInstance = CreateWidget<UIdiotsTogetherInteractionWidget>(this, InteractionWidgetClass);
 		if (InteractionWidgetInstance)
 		{
 			InteractionWidgetInstance->AddToViewport(10);

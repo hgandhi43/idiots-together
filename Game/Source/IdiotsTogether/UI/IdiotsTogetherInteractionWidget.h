@@ -7,7 +7,7 @@
 class UTextBlock;
 
 UCLASS()
-class IDIOTSTOGETHER_API UIIdiotsTogetherInteractionWidget : public UUserWidget
+class IDIOTSTOGETHER_API UIdiotsTogetherInteractionWidget : public UUserWidget
 {
 	GENERATED_BODY()
 

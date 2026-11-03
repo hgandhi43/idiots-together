@@ -5,12 +5,12 @@
 #include "IdiotsTogetherInteractableInterface.generated.h"
 
 UINTERFACE(MinimalAPI, Blueprintable)
-class UIIdiotsTogetherInteractableInterface : public UInterface
+class UIdiotsTogetherInteractableInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
-class IDIOTSTOGETHER_API IIIdiotsTogetherInteractableInterface
+class IDIOTSTOGETHER_API IIdiotsTogetherInteractableInterface
 {
 	GENERATED_BODY()
 

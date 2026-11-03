@@ -1,7 +1,7 @@
 #include "IdiotsTogetherInteractionWidget.h"
 #include "Components/TextBlock.h"
 
-void UIIdiotsTogetherInteractionWidget::SetPromptText(const FText& Text)
+void UIdiotsTogetherInteractionWidget::SetPromptText(const FText& Text)
 {
 	if (PromptText)
 	{
@@ -9,12 +9,12 @@ void UIIdiotsTogetherInteractionWidget::SetPromptText(const FText& Text)
 	}
 }
 
-void UIIdiotsTogetherInteractionWidget::ShowPrompt()
+void UIdiotsTogetherInteractionWidget::ShowPrompt()
 {
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
-void UIIdiotsTogetherInteractionWidget::HidePrompt()
+void UIdiotsTogetherInteractionWidget::HidePrompt()
 {
 	SetVisibility(ESlateVisibility::Collapsed);
 }

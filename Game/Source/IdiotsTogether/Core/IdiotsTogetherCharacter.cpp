@@ -292,24 +292,24 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 
 	AActor* HitActor = bHit ? HitResult.GetActor() : nullptr;
 
-	if (HitActor && HitActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
+	if (HitActor && HitActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{
-		if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(HitActor, this))
+		if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(HitActor, this))
 		{
 			if (HitActor != FocusedActor)
 			{
 				if (FocusedActor)
 				{
-					IIIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+					IIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
 				}
 
 				FocusedActor = HitActor;
 				FocusedInteractable = HitActor;
-				IIIdiotsTogetherInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
+				IIdiotsTogetherInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
 				UE_LOG(LogIdiotsTogether, Warning, TEXT("[INTERACTION] OnBeginFocus called on %s by %s"), *FocusedActor->GetName(), *GetName());
 			}
 
-			FText PromptText = IIIdiotsTogetherInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
+			FText PromptText = IIdiotsTogetherInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
 
 			if (AIdiotsTogetherPlayerController* PC = Cast<AIdiotsTogetherPlayerController>(Controller))
 			{
@@ -322,7 +322,7 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 
 	if (FocusedActor)
 	{
-		IIIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
+		IIdiotsTogetherInteractableInterface::Execute_OnEndFocus(FocusedActor, this);
 		FocusedActor = nullptr;
 		FocusedInteractable = nullptr;
 
@@ -419,13 +419,13 @@ void AIdiotsTogetherCharacter::Interact()
 		FocusedActor ? *FocusedActor->GetName() : TEXT("NONE"),
 		HasAuthority() ? TEXT("TRUE") : TEXT("FALSE"));
 
-	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
+	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{
-		if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(FocusedActor, this))
+		if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(FocusedActor, this))
 		{
 			if (HasAuthority())
 			{
-				IIIdiotsTogetherInteractableInterface::Execute_Interact(FocusedActor, this);
+				IIdiotsTogetherInteractableInterface::Execute_Interact(FocusedActor, this);
 			}
 			else
 			{
@@ -440,14 +440,14 @@ void AIdiotsTogetherCharacter::ServerInteract_Implementation(AActor* TargetActor
 	UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER] ServerInteract received from client %s for target %s"),
 		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("NULL"));
 
-	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UIIdiotsTogetherInteractableInterface::StaticClass()))
+	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{
 		float DistSq = FVector::DistSquared(GetActorLocation(), TargetActor->GetActorLocation());
 		if (DistSq <= FMath::Square(InteractionDistance + 200.0f))
 		{
-			if (IIIdiotsTogetherInteractableInterface::Execute_CanInteract(TargetActor, this))
+			if (IIdiotsTogetherInteractableInterface::Execute_CanInteract(TargetActor, this))
 			{
-				IIIdiotsTogetherInteractableInterface::Execute_Interact(TargetActor, this);
+				IIdiotsTogetherInteractableInterface::Execute_Interact(TargetActor, this);
 			}
 		}
 	}
