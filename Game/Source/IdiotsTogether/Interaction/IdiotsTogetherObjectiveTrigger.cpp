@@ -3,6 +3,7 @@
 #include "IdiotsTogether/Core/IdiotsTogetherGameModeBase.h"
 #include "IdiotsTogether/Core/IdiotsTogetherCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "IdiotsTogether/Core/IdiotsTogetherGameplayTags.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
 AIdiotsTogetherObjectiveTrigger::AIdiotsTogetherObjectiveTrigger()
@@ -15,8 +16,8 @@ AIdiotsTogetherObjectiveTrigger::AIdiotsTogetherObjectiveTrigger()
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
 	TriggerBox->SetBoxExtent(FVector(100.0f, 100.0f, 100.0f));
 
-	TriggerID = TEXT("DefaultTrigger");
-	ObjectiveIDToComplete = TEXT("TEST_OBJECTIVE_01");
+	TriggerName = TEXT("ObjectiveTrigger");
+	ObjectiveTagToComplete = IdiotsTogetherTags::Objective_Test_Primary;
 	bTriggerOnce = true;
 	bHasTriggered = false;
 }
@@ -55,17 +56,17 @@ void AIdiotsTogetherObjectiveTrigger::OnOverlapBegin(UPrimitiveComponent* Overla
 	}
 
 	UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("%s entered trigger '%s' (objective %s)"),
-		*OtherActor->GetName(), *TriggerID, *ObjectiveIDToComplete);
+		*OtherActor->GetName(), *TriggerName.ToString(), *ObjectiveTagToComplete.ToString());
 
 	if (UWorld* World = GetWorld())
 	{
 		if (AIdiotsTogetherGameModeBase* GM = World->GetAuthGameMode<AIdiotsTogetherGameModeBase>())
 		{
-			if (GM->CompleteObjective(ObjectiveIDToComplete))
+			if (GM->CompleteObjective(ObjectiveTagToComplete))
 			{
 				bHasTriggered = true;
 				UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Trigger '%s' completed objective %s"),
-					*TriggerID, *ObjectiveIDToComplete);
+					*TriggerName.ToString(), *ObjectiveTagToComplete.ToString());
 			}
 		}
 	}

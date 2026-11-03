@@ -5,6 +5,7 @@
 #include "IdiotsTogetherCharacter.h"
 #include "IdiotsTogetherScenarioDefinition.h"
 #include "IdiotsTogetherCharacterRules.h"
+#include "IdiotsTogetherObjectiveRules.h"
 #include "IdiotsTogetherSettings.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 #include "TimerManager.h"
@@ -92,12 +93,12 @@ void AIdiotsTogetherGameModeBase::StartScenarioLifecycle()
 	AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
 	if (GS && ActiveScenarioDefinition)
 	{
-		GS->ActiveScenarioID = ActiveScenarioDefinition->ScenarioID;
+		GS->ActiveScenarioTag = ActiveScenarioDefinition->ScenarioTag;
 		GS->ScenarioDisplayName = ActiveScenarioDefinition->DisplayName;
 		GS->ScenarioDescription = ActiveScenarioDefinition->Description;
 		GS->CurrentRoundIndex = 1;
 		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Scenario lifecycle started: %s ('%s'), %d rounds"),
-			*GS->ActiveScenarioID, *GS->ScenarioDisplayName.ToString(), ActiveScenarioDefinition->TargetRoundCount);
+			*GS->ActiveScenarioTag.ToString(), *GS->ScenarioDisplayName.ToString(), ActiveScenarioDefinition->TargetRoundCount);
 	}
 
 	TransitionToPhase(EIdiotsTogetherRoundPhase::Waiting);
@@ -169,20 +170,9 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 	case EIdiotsTogetherRoundPhase::Execution:
 		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->ExecutionDuration : 20.0f;
 		// Initialize runtime objectives from scenario definition
-		GS->ObjectiveStates.Empty();
-		if (ActiveScenarioDefinition)
-		{
-			for (const FIdiotsTogetherObjectiveDefinition& ObjDef : ActiveScenarioDefinition->Objectives)
-			{
-				FIdiotsTogetherObjectiveState State;
-				State.ObjectiveID = ObjDef.ObjectiveID;
-				State.DisplayName = ObjDef.DisplayName;
-				State.Description = ObjDef.Description;
-				State.bIsRequired = ObjDef.bIsRequired;
-				State.bIsCompleted = false;
-				GS->ObjectiveStates.Add(State);
-			}
-		}
+		GS->ObjectiveStates = ActiveScenarioDefinition
+			? IdiotsTogetherObjectiveRules::BuildInitialStates(ActiveScenarioDefinition->Objectives)
+			: TArray<FIdiotsTogetherObjectiveState>();
 		GS->OnObjectiveStatesChanged.Broadcast();
 		UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Execution started with %d objectives"), GS->ObjectiveStates.Num());
 		break;
@@ -306,7 +296,7 @@ void AIdiotsTogetherGameModeBase::ForcePhaseFailure()
 	TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
 }
 
-bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
+bool AIdiotsTogetherGameModeBase::CompleteObjective(FGameplayTag ObjectiveTag)
 {
 	if (!HasAuthority())
 	{
@@ -316,70 +306,40 @@ bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
 	AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
 	if (!GS || GS->CurrentRoundPhase != EIdiotsTogetherRoundPhase::Execution)
 	{
-		UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Ignored completion of '%s': not in Execution"), *ObjectiveID);
+		UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Ignored completion of '%s': not in Execution"), *ObjectiveTag.ToString());
 		return false;
 	}
 
-	bool bFoundAndUpdated = false;
-	for (FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
+	switch (IdiotsTogetherObjectiveRules::TryComplete(GS->ObjectiveStates, ObjectiveTag))
 	{
-		if (State.ObjectiveID.Equals(ObjectiveID, ESearchCase::IgnoreCase))
-		{
-			if (State.bIsCompleted)
-			{
-				UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Objective '%s' already completed"), *ObjectiveID);
-				return false;
-			}
-			State.bIsCompleted = true;
-			bFoundAndUpdated = true;
-			UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Objective completed: %s ('%s')"),
-				*State.ObjectiveID, *State.DisplayName.ToString());
-			break;
-		}
+	case EIdiotsTogetherObjectiveCompleteResult::AlreadyCompleted:
+		UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Objective '%s' already completed"), *ObjectiveTag.ToString());
+		return false;
+
+	case EIdiotsTogetherObjectiveCompleteResult::NotFound:
+		UE_LOG(LogIdiotsTogetherObjective, Warning, TEXT("Objective '%s' is not part of the active scenario"), *ObjectiveTag.ToString());
+		return false;
+
+	case EIdiotsTogetherObjectiveCompleteResult::Completed:
+	default:
+		break;
 	}
 
-	if (bFoundAndUpdated)
+	UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Objective completed: %s"), *ObjectiveTag.ToString());
+	GS->OnObjectiveStatesChanged.Broadcast(); // Server-side listeners; clients get OnRep_ObjectiveStates.
+
+	if (CheckAllRequiredObjectivesCompleted())
 	{
-		GS->OnObjectiveStatesChanged.Broadcast();
-
-		if (CheckAllRequiredObjectivesCompleted())
-		{
-			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("All required objectives complete -> early Success"));
-			GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
-			GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
-			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
-		}
-		return true;
+		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("All required objectives complete -> early Success"));
+		TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
 	}
-
-	UE_LOG(LogIdiotsTogetherObjective, Warning, TEXT("Objective '%s' is not part of the active scenario"), *ObjectiveID);
-	return false;
+	return true;
 }
 
 bool AIdiotsTogetherGameModeBase::CheckAllRequiredObjectivesCompleted() const
 {
 	const AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
-	if (!GS)
-	{
-		return false;
-	}
-
-	int32 RequiredCount = 0;
-	int32 RequiredCompletedCount = 0;
-
-	for (const FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
-	{
-		if (State.bIsRequired)
-		{
-			RequiredCount++;
-			if (State.bIsCompleted)
-			{
-				RequiredCompletedCount++;
-			}
-		}
-	}
-
-	return RequiredCount == 0 || (RequiredCompletedCount >= RequiredCount);
+	return GS && IdiotsTogetherObjectiveRules::AreAllRequiredComplete(GS->ObjectiveStates);
 }
 
 bool AIdiotsTogetherGameModeBase::DevCompleteNextObjective()
@@ -391,17 +351,9 @@ bool AIdiotsTogetherGameModeBase::DevCompleteNextObjective()
 		return false;
 	}
 
-	for (const bool bRequiredPass : { true, false })
-	{
-		for (const FIdiotsTogetherObjectiveState& State : GS->ObjectiveStates)
-		{
-			if (State.bIsRequired == bRequiredPass && !State.bIsCompleted)
-			{
-				const FString ObjectiveToComplete = State.ObjectiveID; // Copy: CompleteObjective mutates the array.
-				return CompleteObjective(ObjectiveToComplete);
-			}
-		}
-	}
-#endif
+	const FGameplayTag NextTag = IdiotsTogetherObjectiveRules::FindNextIncomplete(GS->ObjectiveStates);
+	return NextTag.IsValid() && CompleteObjective(NextTag);
+#else
 	return false;
+#endif
 }

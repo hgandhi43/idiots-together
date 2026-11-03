@@ -1,5 +1,6 @@
 #include "IdiotsTogetherObjectiveComponent.h"
 #include "IdiotsTogetherGameModeBase.h"
+#include "IdiotsTogetherGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
@@ -8,7 +9,7 @@ UIdiotsTogetherObjectiveComponent::UIdiotsTogetherObjectiveComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 	bHasTriggered = false;
-	ObjectiveIDToComplete = TEXT("TEST_OBJECTIVE_01");
+	ObjectiveTagToComplete = IdiotsTogetherTags::Objective_Test_Primary;
 }
 
 void UIdiotsTogetherObjectiveComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -31,7 +32,7 @@ bool UIdiotsTogetherObjectiveComponent::TriggerObjectiveCompletion(APawn* Instig
 		return false;
 	}
 
-	if (ObjectiveIDToComplete.IsEmpty())
+	if (!ObjectiveTagToComplete.IsValid())
 	{
 		UE_LOG(LogIdiotsTogetherObjective, Warning, TEXT("Objective component on %s has no objective set"), *Owner->GetName());
 		return false;
@@ -49,12 +50,12 @@ bool UIdiotsTogetherObjectiveComponent::TriggerObjectiveCompletion(APawn* Instig
 		return false;
 	}
 
-	bool bSuccess = GM->CompleteObjective(ObjectiveIDToComplete);
+	bool bSuccess = GM->CompleteObjective(ObjectiveTagToComplete);
 	if (bSuccess)
 	{
 		bHasTriggered = true;
 		UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Objective component on %s completed %s (instigator %s)"),
-			*Owner->GetName(), *ObjectiveIDToComplete, InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"));
+			*Owner->GetName(), *ObjectiveTagToComplete.ToString(), InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"));
 	}
 
 	return bSuccess;

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "GameplayTagContainer.h"
 #include "IdiotsTogetherTypes.h"
 #include "IdiotsTogetherGameModeBase.generated.h"
 
@@ -36,8 +37,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Scenario")
 	void ForcePhaseFailure();
 
-	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Objective")
-	bool CompleteObjective(const FString& ObjectiveID);
+	/** Server: marks an objective of the active scenario complete (Execution only). Ends the round early when all required objectives are done. */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Idiots Together|Objective")
+	bool CompleteObjective(FGameplayTag ObjectiveTag);
 
 	bool CheckAllRequiredObjectivesCompleted() const;
 

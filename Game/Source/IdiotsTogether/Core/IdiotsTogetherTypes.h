@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/World.h"
+#include "GameplayTagContainer.h"
 #include "IdiotsTogetherTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -56,8 +57,9 @@ struct FIdiotsTogetherObjectiveDefinition
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
-	FString ObjectiveID;
+	/** Unique ID of this objective. Completing actors reference the same tag. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective", meta = (Categories = "Objective"))
+	FGameplayTag ObjectiveTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Objective")
 	FText DisplayName;
@@ -75,7 +77,7 @@ struct FIdiotsTogetherObjectiveState
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
-	FString ObjectiveID;
+	FGameplayTag ObjectiveTag;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	FText DisplayName;

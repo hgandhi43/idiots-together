@@ -284,7 +284,7 @@ void UIdiotsTogetherPhaseHUDWidget::UpdateHUD()
 			for (const FIdiotsTogetherObjectiveState& ObjState : GS->ObjectiveStates)
 			{
 				FString CheckboxStr = ObjState.bIsCompleted ? TEXT("[X] ") : TEXT("[ ] ");
-				FString NameStr = ObjState.DisplayName.IsEmpty() ? ObjState.ObjectiveID : ObjState.DisplayName.ToString();
+				FString NameStr = ObjState.DisplayName.IsEmpty() ? ObjState.ObjectiveTag.ToString() : ObjState.DisplayName.ToString();
 				if (!ObjState.bIsRequired)
 				{
 					NameStr += TEXT(" (Optional)");

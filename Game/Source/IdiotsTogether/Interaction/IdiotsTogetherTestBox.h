@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "IdiotsTogetherInteractableInterface.h"
+#include "GameplayTagContainer.h"
 #include "IdiotsTogetherTestBox.generated.h"
 
 class UStaticMeshComponent;
@@ -25,8 +26,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Interaction")
 	FText InteractionPromptText;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Objective")
-	FString ObjectiveIDToComplete;
+	/** Objective (Objective.*) completed on interaction. Leave empty for a plain toggle box. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Objective", meta = (Categories = "Objective"))
+	FGameplayTag ObjectiveTagToComplete;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Idiots Together|State")
 	bool bIsActivated;

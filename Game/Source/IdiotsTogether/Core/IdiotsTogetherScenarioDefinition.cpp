@@ -1,10 +1,12 @@
 #include "IdiotsTogetherScenarioDefinition.h"
+#include "IdiotsTogetherGameplayTags.h"
 
 UIdiotsTogetherScenarioDefinition::UIdiotsTogetherScenarioDefinition()
 {
-	ScenarioID = TEXT("M3D_TEST");
+	// Defaults describe the built-in foundation test scenario, used when no asset is assigned.
+	ScenarioTag = IdiotsTogetherTags::Scenario_Test_Foundation;
 	DisplayName = NSLOCTEXT("Scenario", "TestScenarioDisplayName", "Gameplay Foundation Test");
-	Description = NSLOCTEXT("Scenario", "TestScenarioDesc", "M3D Gameplay Foundation test scenario for objectives and execution timing.");
+	Description = NSLOCTEXT("Scenario", "TestScenarioDesc", "Test scenario for objectives and execution timing.");
 	BriefingDuration = 5.0f;
 	PlanningDuration = 5.0f;
 	ExecutionDuration = 20.0f;
@@ -12,14 +14,14 @@ UIdiotsTogetherScenarioDefinition::UIdiotsTogetherScenarioDefinition()
 	TargetRoundCount = 3;
 
 	FIdiotsTogetherObjectiveDefinition ReqObj;
-	ReqObj.ObjectiveID = TEXT("TEST_OBJECTIVE_01");
+	ReqObj.ObjectiveTag = IdiotsTogetherTags::Objective_Test_Primary;
 	ReqObj.DisplayName = NSLOCTEXT("Scenario", "ReqObjName", "Complete Test Objective");
-	ReqObj.Description = NSLOCTEXT("Scenario", "ReqObjDesc", "Interact with the test box, enter trigger, or press Key 9.");
+	ReqObj.Description = NSLOCTEXT("Scenario", "ReqObjDesc", "Interact with the test box, enter the trigger, or press 9 (dev).");
 	ReqObj.bIsRequired = true;
 	Objectives.Add(ReqObj);
 
 	FIdiotsTogetherObjectiveDefinition OptObj;
-	OptObj.ObjectiveID = TEXT("TEST_OBJECTIVE_02");
+	OptObj.ObjectiveTag = IdiotsTogetherTags::Objective_Test_Optional;
 	OptObj.DisplayName = NSLOCTEXT("Scenario", "OptObjName", "Optional Test Objective");
 	OptObj.Description = NSLOCTEXT("Scenario", "OptObjDesc", "Optional side task for testing.");
 	OptObj.bIsRequired = false;

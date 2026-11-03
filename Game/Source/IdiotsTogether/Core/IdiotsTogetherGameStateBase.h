@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameplayTagContainer.h"
 #include "IdiotsTogetherTypes.h"
 #include "IdiotsTogetherGameStateBase.generated.h"
 
@@ -27,8 +28,8 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_RemainingPhaseTime, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	float RemainingPhaseTime;
 
-	UPROPERTY(ReplicatedUsing = OnRep_ActiveScenarioID, BlueprintReadOnly, Category = "Idiots Together|Scenario")
-	FString ActiveScenarioID;
+	UPROPERTY(ReplicatedUsing = OnRep_ActiveScenarioTag, BlueprintReadOnly, Category = "Idiots Together|Scenario")
+	FGameplayTag ActiveScenarioTag;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	FText ScenarioDisplayName;
@@ -55,7 +56,7 @@ public:
 	void OnRep_RemainingPhaseTime();
 
 	UFUNCTION()
-	void OnRep_ActiveScenarioID();
+	void OnRep_ActiveScenarioTag();
 
 	UFUNCTION()
 	void OnRep_ObjectiveStates();

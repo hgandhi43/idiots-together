@@ -8,7 +8,6 @@ AIdiotsTogetherGameStateBase::AIdiotsTogetherGameStateBase()
 	CurrentRoundPhase = EIdiotsTogetherRoundPhase::Waiting;
 	CurrentRoundIndex = 1;
 	RemainingPhaseTime = 0.0f;
-	ActiveScenarioID = TEXT("TestScenario");
 }
 
 void AIdiotsTogetherGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -18,7 +17,7 @@ void AIdiotsTogetherGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimePr
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, CurrentRoundPhase);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, CurrentRoundIndex);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, RemainingPhaseTime);
-	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ActiveScenarioID);
+	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ActiveScenarioTag);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ScenarioDisplayName);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ScenarioDescription);
 	DOREPLIFETIME(AIdiotsTogetherGameStateBase, ObjectiveStates);
@@ -41,9 +40,9 @@ void AIdiotsTogetherGameStateBase::OnRep_RemainingPhaseTime()
 {
 }
 
-void AIdiotsTogetherGameStateBase::OnRep_ActiveScenarioID()
+void AIdiotsTogetherGameStateBase::OnRep_ActiveScenarioTag()
 {
-	UE_LOG(LogIdiotsTogetherRound, Verbose, TEXT("OnRep active scenario %s"), *ActiveScenarioID);
+	UE_LOG(LogIdiotsTogetherRound, Verbose, TEXT("OnRep active scenario %s"), *ActiveScenarioTag.ToString());
 }
 
 void AIdiotsTogetherGameStateBase::OnRep_ObjectiveStates()

@@ -16,7 +16,8 @@ public class IdiotsTogether : ModuleRules
 			"Slate",
 			"SlateCore",
 			"NetCore",
-			"DeveloperSettings"
+			"DeveloperSettings",
+			"GameplayTags"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

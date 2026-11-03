@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "IdiotsTogetherObjectiveTrigger.generated.h"
 
 class UBoxComponent;
@@ -21,11 +22,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UBoxComponent* TriggerBox;
 
+	/** Debug label for logs. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Trigger")
-	FString TriggerID;
+	FName TriggerName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Trigger")
-	FString ObjectiveIDToComplete;
+	/** Objective (Objective.*) completed when a player enters the volume during Execution. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Trigger", meta = (Categories = "Objective"))
+	FGameplayTag ObjectiveTagToComplete;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Idiots Together|Trigger")
 	bool bTriggerOnce;
