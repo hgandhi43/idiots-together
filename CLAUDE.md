@@ -38,11 +38,12 @@ Module layout under `Game/Source/IdiotsTogether/`:
 3. Where it saves real time, you may write Unreal Editor Python scripts (in `Game/Scripts/`) that create or configure assets. A human runs them in the editor.
 
 ## Build & test
-- Compile after every change. On Windows, from repo root:
+- Compile after every change: `Scripts/build.bat` (needs `UE_ROOT`). Equivalent raw command, from repo root:
   `"<UE_ROOT>/Engine/Build/BatchFiles/Build.bat" IdiotsTogetherEditor Win64 Development -Project="%CD%/Game/IdiotsTogether.uproject" -WaitMutex`
   (Set `UE_ROOT` in your local env. Do not commit machine paths.)
 - Automation tests live in `Source/IdiotsTogether/Tests/` and use the `IdiotsTogether.*` prefix. Run headless:
-  `UnrealEditor-Cmd.exe <uproject> -ExecCmds="Automation RunTests IdiotsTogether; Quit" -unattended -nullrhi -nosplash`
+  `Scripts/test.bat [Filter]`, which runs `UnrealEditor-Cmd.exe <uproject> -ExecCmds="Automation RunTests IdiotsTogether" -TestExit="Automation Test Queue Empty" -unattended -nullrhi -nosplash` and returns non-zero on failure.
+- Keep testable logic in pure `*Rules` helpers (no UObjects, no world) so it can be unit-tested; see `Core/IdiotsTogether*Rules.h`.
 - A task is **not done** until: it compiles with zero new warnings, the tests pass, and you have listed the multiplayer manual test (PIE, Play As Listen Server, 2–4 clients) that a human should run.
 
 ## Workflow per task

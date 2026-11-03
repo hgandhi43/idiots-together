@@ -86,6 +86,8 @@ Rough effort, for a team of 2 using Claude Code heavily, plus outsourced art: ab
 
 **Done when:** a clean compile, the tests pass headless, and a 3-client PIE run shows correct and unique character assignment.
 
+**Status (2026-11-03):** P0.1–P0.6 code complete on branch `feat/akash`. Written on a machine without UE, so **not yet compiled or run**: the gate is a clean build, `Scripts/test.bat` green and the 3-client PIE check on the build machine. Issue 4 (round counter wrap) is tracked by `IdiotsTogetherPhaseRules::GetNextRoundIndex` and fixed properly in P2.2.
+
 ---
 
 ## Phase 1: Session Flow & Front End

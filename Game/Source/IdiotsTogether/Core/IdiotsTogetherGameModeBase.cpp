@@ -6,6 +6,7 @@
 #include "IdiotsTogetherScenarioDefinition.h"
 #include "IdiotsTogetherCharacterRules.h"
 #include "IdiotsTogetherObjectiveRules.h"
+#include "IdiotsTogetherPhaseRules.h"
 #include "IdiotsTogetherSettings.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 #include "TimerManager.h"
@@ -110,6 +111,21 @@ void AIdiotsTogetherGameModeBase::StartScenarioLifecycle()
 	}));
 }
 
+FIdiotsTogetherPhaseDurations AIdiotsTogetherGameModeBase::GetPhaseDurations() const
+{
+	FIdiotsTogetherPhaseDurations Durations;
+	if (ActiveScenarioDefinition)
+	{
+		Durations.Briefing = ActiveScenarioDefinition->BriefingDuration;
+		Durations.Planning = ActiveScenarioDefinition->PlanningDuration;
+		Durations.Execution = ActiveScenarioDefinition->ExecutionDuration;
+		Durations.Results = ActiveScenarioDefinition->ResultsDuration;
+	}
+	Durations.Outcome = OutcomeDisplayDuration;
+	Durations.NextRound = NextRoundDisplayDuration;
+	return Durations;
+}
+
 void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase NewPhase)
 {
 	if (!HasAuthority())
@@ -123,70 +139,38 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 		return;
 	}
 
-	// Handle NextRound transition logic
-	if (NewPhase == EIdiotsTogetherRoundPhase::NextRound)
-	{
-		GS->SetCurrentRoundPhase_Server(EIdiotsTogetherRoundPhase::NextRound);
-
-		int32 TargetRounds = ActiveScenarioDefinition ? ActiveScenarioDefinition->TargetRoundCount : 3;
-		GS->CurrentRoundIndex++;
-		if (GS->CurrentRoundIndex > TargetRounds)
-		{
-			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Round limit reached (%d/%d); wrapping to round 1 (run-end flow arrives in P2.2)."),
-				GS->CurrentRoundIndex, TargetRounds);
-			GS->CurrentRoundIndex = 1;
-		}
-
-		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Advancing to round %d"), GS->CurrentRoundIndex);
-
-		// Briefly show NextRound then transition to Briefing
-		GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
-		GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
-		GetWorldTimerManager().SetTimer(PhaseTimerHandle, FTimerDelegate::CreateLambda([this]()
-		{
-			TransitionToPhase(EIdiotsTogetherRoundPhase::Briefing);
-		}), 1.5f, false);
-		return;
-	}
-
-	GS->SetCurrentRoundPhase_Server(NewPhase);
-
 	GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
 	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
 
-	CurrentPhaseDuration = 0.0f;
+	GS->SetCurrentRoundPhase_Server(NewPhase);
 
 	switch (NewPhase)
 	{
-	case EIdiotsTogetherRoundPhase::Waiting:
-		CurrentPhaseDuration = 0.0f;
-		break;
-	case EIdiotsTogetherRoundPhase::Briefing:
-		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->BriefingDuration : 5.0f;
-		break;
-	case EIdiotsTogetherRoundPhase::Planning:
-		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->PlanningDuration : 5.0f;
-		break;
 	case EIdiotsTogetherRoundPhase::Execution:
-		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->ExecutionDuration : 20.0f;
-		// Initialize runtime objectives from scenario definition
 		GS->ObjectiveStates = ActiveScenarioDefinition
 			? IdiotsTogetherObjectiveRules::BuildInitialStates(ActiveScenarioDefinition->Objectives)
 			: TArray<FIdiotsTogetherObjectiveState>();
 		GS->OnObjectiveStatesChanged.Broadcast();
 		UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Execution started with %d objectives"), GS->ObjectiveStates.Num());
 		break;
-	case EIdiotsTogetherRoundPhase::Success:
-	case EIdiotsTogetherRoundPhase::Failure:
-		CurrentPhaseDuration = 3.0f;
+
+	case EIdiotsTogetherRoundPhase::NextRound:
+	{
+		const int32 TargetRounds = ActiveScenarioDefinition ? ActiveScenarioDefinition->TargetRoundCount : 1;
+		bool bRunComplete = false;
+		GS->CurrentRoundIndex = IdiotsTogetherPhaseRules::GetNextRoundIndex(GS->CurrentRoundIndex, TargetRounds, bRunComplete);
+		if (bRunComplete)
+		{
+			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("All %d rounds played; wrapping to round 1 (run-end flow arrives in P2.2)."), TargetRounds);
+		}
 		break;
-	case EIdiotsTogetherRoundPhase::Results:
-		CurrentPhaseDuration = ActiveScenarioDefinition ? ActiveScenarioDefinition->ResultsDuration : 5.0f;
-		break;
+	}
+
 	default:
 		break;
 	}
 
+	CurrentPhaseDuration = IdiotsTogetherPhaseRules::GetPhaseDuration(NewPhase, GetPhaseDurations());
 	PhaseTimeRemaining = CurrentPhaseDuration;
 	GS->RemainingPhaseTime = PhaseTimeRemaining;
 
@@ -196,7 +180,7 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 	if (CurrentPhaseDuration > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(PhaseTimerHandle, this, &AIdiotsTogetherGameModeBase::OnPhaseTimerExpired, CurrentPhaseDuration, false);
-		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &AIdiotsTogetherGameModeBase::UpdatePhaseCountdown, 0.25f, true);
+		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &AIdiotsTogetherGameModeBase::UpdatePhaseCountdown, CountdownReplicationInterval, true);
 	}
 }
 
@@ -221,45 +205,23 @@ void AIdiotsTogetherGameModeBase::OnPhaseTimerExpired()
 		return;
 	}
 
-	AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
+	const AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
 	if (!GS)
 	{
 		return;
 	}
 
-	switch (GS->CurrentRoundPhase)
+	const EIdiotsTogetherRoundPhase Current = GS->CurrentRoundPhase;
+	const EIdiotsTogetherRoundPhase Next = IdiotsTogetherPhaseRules::GetNextPhaseOnTimeout(Current, CheckAllRequiredObjectivesCompleted());
+
+	if (Current == EIdiotsTogetherRoundPhase::Execution)
 	{
-	case EIdiotsTogetherRoundPhase::Waiting:
-		TransitionToPhase(EIdiotsTogetherRoundPhase::Briefing);
-		break;
-	case EIdiotsTogetherRoundPhase::Briefing:
-		TransitionToPhase(EIdiotsTogetherRoundPhase::Planning);
-		break;
-	case EIdiotsTogetherRoundPhase::Planning:
-		TransitionToPhase(EIdiotsTogetherRoundPhase::Execution);
-		break;
-	case EIdiotsTogetherRoundPhase::Execution:
-		// Timer expiration during Execution when required objectives are incomplete results in Failure
-		if (CheckAllRequiredObjectivesCompleted())
-		{
-			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Execution timer expired with all required objectives complete -> Success"));
-			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
-		}
-		else
-		{
-			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Execution timer expired with required objectives incomplete -> Failure"));
-			TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
-		}
-		break;
-	case EIdiotsTogetherRoundPhase::Success:
-	case EIdiotsTogetherRoundPhase::Failure:
-		TransitionToPhase(EIdiotsTogetherRoundPhase::Results);
-		break;
-	case EIdiotsTogetherRoundPhase::Results:
-		TransitionToPhase(EIdiotsTogetherRoundPhase::NextRound);
-		break;
-	default:
-		break;
+		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Execution timer expired -> %s"), GetRoundPhaseString(Next));
+	}
+
+	if (Next != Current)
+	{
+		TransitionToPhase(Next);
 	}
 }
 

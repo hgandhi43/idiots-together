@@ -4,6 +4,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameplayTagContainer.h"
 #include "IdiotsTogetherTypes.h"
+#include "IdiotsTogetherPhaseRules.h"
 #include "IdiotsTogetherGameModeBase.generated.h"
 
 class UIdiotsTogetherScenarioDefinition;
@@ -54,6 +55,21 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Scenario")
 	UIdiotsTogetherScenarioDefinition* ActiveScenarioDefinition;
+
+	/** Seconds the Success / Failure banner stays up before Results. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Timing", meta = (ClampMin = "0", Units = "s"))
+	float OutcomeDisplayDuration = 3.0f;
+
+	/** Seconds of the NextRound interstitial before the next Briefing. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Timing", meta = (ClampMin = "0", Units = "s"))
+	float NextRoundDisplayDuration = 1.5f;
+
+	/** How often the remaining phase time is pushed to the replicated GameState. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Idiots Together|Timing", meta = (ClampMin = "0.05", Units = "s"))
+	float CountdownReplicationInterval = 0.25f;
+
+	/** Phase durations from the active scenario plus this GameMode's own tunables. */
+	FIdiotsTogetherPhaseDurations GetPhaseDurations() const;
 
 	FTimerHandle PhaseTimerHandle;
 	FTimerHandle CountdownTimerHandle;
