@@ -18,6 +18,9 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 
+	/** Server: gives the player the lowest free colour index from the project palette. */
+	void AssignPlayerColor(APlayerController* NewPlayer);
+
 	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Scenario")
 	void StartScenarioLifecycle();
 

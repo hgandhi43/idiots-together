@@ -52,8 +52,9 @@ public:
 	virtual void OnRep_PlayerState() override;
 	virtual void PossessedBy(AController* NewController) override;
 
+	/** Re-applies identity shape/label and player colour from the PlayerState. Cosmetic, runs on every machine. */
 	UFUNCTION(BlueprintCallable, Category = "Idiots Together|Character")
-	void UpdateCharacterRepresentation(EIdiotsTogetherCharacterType NewType);
+	void RefreshRepresentation();
 
 protected:
 	virtual void BeginPlay() override;
@@ -66,6 +67,21 @@ protected:
 
 	UFUNCTION()
 	void OnPlayerStateCharacterTypeChanged(EIdiotsTogetherCharacterType NewType);
+
+	UFUNCTION()
+	void OnPlayerStateColorIndexChanged(int32 NewColorIndex);
+
+	/** Placeholder look per identity (label + mesh scale). Replaced by identity data assets in P7.1. */
+	UPROPERTY(EditDefaultsOnly, Category = "Idiots Together|Identity")
+	TMap<EIdiotsTogetherCharacterType, FIdiotsTogetherIdentityVisual> IdentityVisuals;
+
+	/** Look used while the player has no identity yet. */
+	UPROPERTY(EditDefaultsOnly, Category = "Idiots Together|Identity")
+	FIdiotsTogetherIdentityVisual UnselectedVisual;
+
+	/** Material vector parameters set to the player colour (names the material lacks are ignored). */
+	UPROPERTY(EditDefaultsOnly, Category = "Idiots Together|Identity")
+	TArray<FName> MeshColorParameterNames;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

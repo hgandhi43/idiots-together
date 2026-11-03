@@ -43,7 +43,7 @@ TSharedRef<SWidget> UIdiotsTogetherDevCharSelectWidget::RebuildWidget()
 		.Padding(4.0f)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Keys: [1] Boss  [2] Nerd  [3] Muscle  [4] Intern  [5] Random")))
+			.Text(FText::FromString(TEXT("Keys: [1] Boss  [2] Nerd  [3] Muscle  [4] Intern  [5] Random (duplicates allowed)")))
 			.Font(FCoreStyle::GetDefaultFontStyle("Italic", 10))
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.85f, 0.85f)))
 		];
@@ -142,14 +142,8 @@ void UIdiotsTogetherDevCharSelectWidget::UpdateStatusText()
 	{
 		if (AIdiotsTogetherPlayerState* LocalPS = PC->GetPlayerState<AIdiotsTogetherPlayerState>())
 		{
-			switch (LocalPS->GetCharacterType())
-			{
-			case EIdiotsTogetherCharacterType::Boss: LocalCharName = TEXT("BOSS"); break;
-			case EIdiotsTogetherCharacterType::Nerd: LocalCharName = TEXT("NERD"); break;
-			case EIdiotsTogetherCharacterType::Muscle: LocalCharName = TEXT("MUSCLE"); break;
-			case EIdiotsTogetherCharacterType::Intern: LocalCharName = TEXT("INTERN"); break;
-			default: LocalCharName = TEXT("UNSELECTED"); break;
-			}
+			LocalCharName = FString::Printf(TEXT("%s (colour %d)"),
+				*UEnum::GetDisplayValueAsText(LocalPS->GetCharacterType()).ToString(), LocalPS->GetPlayerColorIndex());
 		}
 
 		if (UWorld* World = GetWorld())
@@ -161,20 +155,12 @@ void UIdiotsTogetherDevCharSelectWidget::UpdateStatusText()
 				{
 					if (AIdiotsTogetherPlayerState* PS = Cast<AIdiotsTogetherPlayerState>(PSBase))
 					{
-						FString CName = TEXT("None");
-						switch (PS->GetCharacterType())
-						{
-						case EIdiotsTogetherCharacterType::Boss: CName = TEXT("Boss"); break;
-						case EIdiotsTogetherCharacterType::Nerd: CName = TEXT("Nerd"); break;
-						case EIdiotsTogetherCharacterType::Muscle: CName = TEXT("Muscle"); break;
-						case EIdiotsTogetherCharacterType::Intern: CName = TEXT("Intern"); break;
-						default: break;
-						}
 						if (!TeamStatusStr.IsEmpty())
 						{
 							TeamStatusStr += TEXT(" | ");
 						}
-						TeamStatusStr += FString::Printf(TEXT("P%d=%s"), PlayerIdx++, *CName);
+						TeamStatusStr += FString::Printf(TEXT("P%d=%s (c%d)"), PlayerIdx++,
+							*UEnum::GetDisplayValueAsText(PS->GetCharacterType()).ToString(), PS->GetPlayerColorIndex());
 					}
 				}
 			}

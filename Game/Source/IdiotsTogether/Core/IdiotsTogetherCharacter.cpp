@@ -1,6 +1,7 @@
 #include "IdiotsTogetherCharacter.h"
 #include "IdiotsTogetherPlayerController.h"
 #include "IdiotsTogetherPlayerState.h"
+#include "IdiotsTogetherSettings.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -56,7 +57,22 @@ AIdiotsTogetherCharacter::AIdiotsTogetherCharacter()
 	OverheadTextComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
 	OverheadTextComponent->SetHorizontalAlignment(EHTA_Center);
 	OverheadTextComponent->SetWorldSize(32.0f);
-	OverheadTextComponent->SetText(FText::FromString(TEXT("[UNSELECTED]")));
+	OverheadTextComponent->SetText(NSLOCTEXT("IdiotsTogether", "IdentityUnselected", "[UNSELECTED]"));
+
+	auto MakeVisual = [](const FText& Label, const FVector& Scale)
+	{
+		FIdiotsTogetherIdentityVisual Visual;
+		Visual.Label = Label;
+		Visual.MeshScale = Scale;
+		return Visual;
+	};
+	UnselectedVisual = MakeVisual(NSLOCTEXT("IdiotsTogether", "IdentityUnselected", "[UNSELECTED]"), FVector(0.8f, 0.8f, 1.8f));
+	IdentityVisuals.Add(EIdiotsTogetherCharacterType::Boss,   MakeVisual(NSLOCTEXT("IdiotsTogether", "IdentityBoss", "[BOSS]"),     FVector(0.9f, 0.9f, 1.85f)));
+	IdentityVisuals.Add(EIdiotsTogetherCharacterType::Nerd,   MakeVisual(NSLOCTEXT("IdiotsTogether", "IdentityNerd", "[NERD]"),     FVector(0.75f, 0.75f, 1.95f)));
+	IdentityVisuals.Add(EIdiotsTogetherCharacterType::Muscle, MakeVisual(NSLOCTEXT("IdiotsTogether", "IdentityMuscle", "[MUSCLE]"), FVector(1.25f, 1.25f, 1.7f)));
+	IdentityVisuals.Add(EIdiotsTogetherCharacterType::Intern, MakeVisual(NSLOCTEXT("IdiotsTogether", "IdentityIntern", "[INTERN]"), FVector(0.75f, 0.75f, 1.45f)));
+
+	MeshColorParameterNames = { TEXT("Color"), TEXT("BaseColor"), TEXT("TintColor") };
 
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> IMC(TEXT("/Game/Input/IMC_Default.IMC_Default"));
 	if (IMC.Succeeded())
@@ -122,76 +138,61 @@ void AIdiotsTogetherCharacter::BindToPlayerState()
 	{
 		PS->OnCharacterTypeChanged.RemoveDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged);
 		PS->OnCharacterTypeChanged.AddDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged);
+		PS->OnPlayerColorIndexChanged.RemoveDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateColorIndexChanged);
+		PS->OnPlayerColorIndexChanged.AddDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateColorIndexChanged);
 
-		UpdateCharacterRepresentation(PS->GetCharacterType());
-		UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Bound %s to PlayerState %s (CharacterType=%d)"),
-			*GetName(), *PS->GetPlayerName(), static_cast<int32>(PS->GetCharacterType()));
+		RefreshRepresentation();
+		UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Bound %s to PlayerState %s (CharacterType=%d, Colour=%d)"),
+			*GetName(), *PS->GetPlayerName(), static_cast<int32>(PS->GetCharacterType()), PS->GetPlayerColorIndex());
 	}
 }
 
 void AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged(EIdiotsTogetherCharacterType NewType)
 {
-	UpdateCharacterRepresentation(NewType);
+	RefreshRepresentation();
 }
 
-void AIdiotsTogetherCharacter::UpdateCharacterRepresentation(EIdiotsTogetherCharacterType NewType)
+void AIdiotsTogetherCharacter::OnPlayerStateColorIndexChanged(int32 NewColorIndex)
+{
+	RefreshRepresentation();
+}
+
+void AIdiotsTogetherCharacter::RefreshRepresentation()
 {
 	if (!VisibleMesh)
 	{
 		return;
 	}
 
+	const AIdiotsTogetherPlayerState* PS = GetPlayerState<AIdiotsTogetherPlayerState>();
+	const EIdiotsTogetherCharacterType Identity = PS ? PS->GetCharacterType() : EIdiotsTogetherCharacterType::None;
+	const FLinearColor PlayerColor = PS ? PS->GetPlayerColor() : UIdiotsTogetherSettings::Get()->UnassignedPlayerColor;
+
+	const FIdiotsTogetherIdentityVisual* FoundVisual = IdentityVisuals.Find(Identity);
+	const FIdiotsTogetherIdentityVisual& Visual = FoundVisual ? *FoundVisual : UnselectedVisual;
+
 	if (!DynamicMaterialInstance && VisibleMesh->GetMaterial(0))
 	{
 		DynamicMaterialInstance = VisibleMesh->CreateAndSetMaterialInstanceDynamic(0);
 	}
 
-	FLinearColor CharColor = FLinearColor(0.4f, 0.4f, 0.4f, 1.0f);
-	FVector MeshScale = FVector(0.8f, 0.8f, 1.8f);
-	FString DisplayName = TEXT("[UNSELECTED]");
-
-	switch (NewType)
-	{
-	case EIdiotsTogetherCharacterType::Boss:
-		CharColor = FLinearColor(1.0f, 0.8f, 0.0f, 1.0f);
-		MeshScale = FVector(0.9f, 0.9f, 1.85f);
-		DisplayName = TEXT("[BOSS]");
-		break;
-	case EIdiotsTogetherCharacterType::Nerd:
-		CharColor = FLinearColor(0.0f, 0.75f, 1.0f, 1.0f);
-		MeshScale = FVector(0.75f, 0.75f, 1.95f);
-		DisplayName = TEXT("[NERD]");
-		break;
-	case EIdiotsTogetherCharacterType::Muscle:
-		CharColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f);
-		MeshScale = FVector(1.25f, 1.25f, 1.7f);
-		DisplayName = TEXT("[MUSCLE]");
-		break;
-	case EIdiotsTogetherCharacterType::Intern:
-		CharColor = FLinearColor(0.2f, 0.85f, 0.2f, 1.0f);
-		MeshScale = FVector(0.75f, 0.75f, 1.45f);
-		DisplayName = TEXT("[INTERN]");
-		break;
-	default:
-		break;
-	}
-
-	VisibleMesh->SetRelativeScale3D(MeshScale);
+	VisibleMesh->SetRelativeScale3D(Visual.MeshScale);
 
 	if (DynamicMaterialInstance)
 	{
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("Color"), CharColor);
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("BaseColor"), CharColor);
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("TintColor"), CharColor);
+		for (const FName& ParamName : MeshColorParameterNames)
+		{
+			DynamicMaterialInstance->SetVectorParameterValue(ParamName, PlayerColor);
+		}
 	}
 
 	if (OverheadTextComponent)
 	{
-		OverheadTextComponent->SetText(FText::FromString(DisplayName));
-		OverheadTextComponent->SetTextRenderColor(CharColor.ToFColor(true));
+		OverheadTextComponent->SetText(Visual.Label);
+		OverheadTextComponent->SetTextRenderColor(PlayerColor.ToFColor(true));
 	}
 
-	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Representation updated: %s -> %s"), *GetName(), *DisplayName);
+	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Representation updated: %s -> %s"), *GetName(), *Visual.Label.ToString());
 }
 
 void AIdiotsTogetherCharacter::NotifyControllerChanged()

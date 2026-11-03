@@ -2,6 +2,7 @@
 #include "EnhancedInputSubsystemInterface.h"
 #include "EnhancedInputSubsystems.h"
 #include "IdiotsTogetherPlayerState.h"
+#include "IdiotsTogetherCharacterRules.h"
 #include "IdiotsTogetherGameModeBase.h"
 #include "IdiotsTogether/UI/IdiotsTogetherInteractionWidget.h"
 #include "IdiotsTogether/UI/IdiotsTogetherDevCharSelectWidget.h"
@@ -141,7 +142,7 @@ void AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Implementa
 
 	if (AIdiotsTogetherPlayerState* PS = GetPlayerState<AIdiotsTogetherPlayerState>())
 	{
-		PS->ServerSelectCharacter(Selection);
+		PS->SelectCharacter_Server(Selection);
 	}
 	else
 	{
@@ -151,7 +152,8 @@ void AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Implementa
 
 bool AIdiotsTogetherPlayerController::ServerRequestCharacterSelection_Validate(EIdiotsTogetherCharacterType Selection)
 {
-	return true;
+	// Out-of-range enum values can only come from a modified client.
+	return IdiotsTogetherCharacterRules::IsValidSelectionRequest(Selection);
 }
 
 void AIdiotsTogetherPlayerController::DevSelectBoss()

@@ -1,13 +1,14 @@
 #include "IdiotsTogetherPlayerState.h"
+#include "IdiotsTogetherCharacterRules.h"
+#include "IdiotsTogetherSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameStateBase.h"
-#include "Algo/RandomShuffle.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 
 AIdiotsTogetherPlayerState::AIdiotsTogetherPlayerState()
 {
 	bIsReady = false;
-	PlayerColorIndex = 0;
+	PlayerColorIndex = INDEX_NONE;
 	CharacterType = EIdiotsTogetherCharacterType::None;
 }
 
@@ -28,85 +29,75 @@ void AIdiotsTogetherPlayerState::OnRep_CharacterType()
 	OnCharacterTypeChanged.Broadcast(CharacterType);
 }
 
-void AIdiotsTogetherPlayerState::ServerSelectCharacter_Implementation(EIdiotsTogetherCharacterType RequestedType)
+void AIdiotsTogetherPlayerState::OnRep_PlayerColorIndex()
+{
+	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("OnRep colour index: player %d (%s) -> %d"),
+		GetPlayerId(), *GetPlayerName(), PlayerColorIndex);
+
+	OnPlayerColorIndexChanged.Broadcast(PlayerColorIndex);
+}
+
+FLinearColor AIdiotsTogetherPlayerState::GetPlayerColor() const
+{
+	return UIdiotsTogetherSettings::Get()->GetPlayerColor(PlayerColorIndex);
+}
+
+bool AIdiotsTogetherPlayerState::SelectCharacter_Server(EIdiotsTogetherCharacterType RequestedType)
 {
 	if (!HasAuthority())
 	{
-		return;
+		return false;
 	}
 
-	UWorld* World = GetWorld();
-	if (!World)
+	if (!IdiotsTogetherCharacterRules::IsValidSelectionRequest(RequestedType))
 	{
-		return;
+		UE_LOG(LogIdiotsTogetherPlayer, Warning, TEXT("Rejected invalid character request %d from %s"),
+			static_cast<int32>(RequestedType), *GetPlayerName());
+		return false;
 	}
 
-	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	EIdiotsTogetherCharacterType Resolved = RequestedType;
 
-	// TEAM RANDOM SELECTION
 	if (RequestedType == EIdiotsTogetherCharacterType::Random)
 	{
-		// Available unique characters (max 4 selectable unique types)
-		TArray<EIdiotsTogetherCharacterType> AvailablePool = {
-			EIdiotsTogetherCharacterType::Boss,
-			EIdiotsTogetherCharacterType::Nerd,
-			EIdiotsTogetherCharacterType::Muscle,
-			EIdiotsTogetherCharacterType::Intern
-		};
-
-		// Fisher-Yates / Algo::RandomShuffle to randomize team assignment
-		Algo::RandomShuffle(AvailablePool);
-
-		if (GS)
+		TArray<EIdiotsTogetherCharacterType> OtherIdentities;
+		if (const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr)
 		{
-			int32 Index = 0;
-			for (APlayerState* OtherPSBase : GS->PlayerArray)
+			for (const APlayerState* OtherBase : GS->PlayerArray)
 			{
-				if (AIdiotsTogetherPlayerState* PS = Cast<AIdiotsTogetherPlayerState>(OtherPSBase))
+				const AIdiotsTogetherPlayerState* Other = Cast<AIdiotsTogetherPlayerState>(OtherBase);
+				if (Other && Other != this && IdiotsTogetherCharacterRules::IsSelectableIdentity(Other->CharacterType))
 				{
-					// Assign unique character from shuffled pool (wrapping around gracefully if player count > pool size)
-					EIdiotsTogetherCharacterType Assigned = AvailablePool[Index % AvailablePool.Num()];
-					PS->CharacterType = Assigned;
-					PS->OnRep_CharacterType();
-					UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Team random: %s (%d) -> %d"),
-						*PS->GetPlayerName(), PS->GetPlayerId(), static_cast<int32>(Assigned));
-					Index++;
+					OtherIdentities.Add(Other->CharacterType);
 				}
 			}
 		}
-		return;
+
+		// Phase 5 will replace this with the round's seeded stream.
+		FRandomStream Stream(FMath::Rand());
+		Resolved = IdiotsTogetherCharacterRules::PickLeastUsedIdentity(OtherIdentities, Stream);
 	}
 
-	// MANUAL SELECTION WITH SERVER-AUTHORITATIVE UNIQUENESS VALIDATION
-	bool bIsAlreadyTaken = false;
-	if (GS)
+	if (CharacterType != Resolved)
 	{
-		for (APlayerState* OtherPSBase : GS->PlayerArray)
-		{
-			if (AIdiotsTogetherPlayerState* OtherPS = Cast<AIdiotsTogetherPlayerState>(OtherPSBase))
-			{
-				if (OtherPS != this && OtherPS->GetCharacterType() == RequestedType)
-				{
-					bIsAlreadyTaken = true;
-					UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Selection of %d rejected: taken by %s (%d)"),
-						static_cast<int32>(RequestedType), *OtherPS->GetPlayerName(), OtherPS->GetPlayerId());
-					break;
-				}
-			}
-		}
+		CharacterType = Resolved;
+		OnRep_CharacterType(); // Listen-server host does not receive OnRep; call it manually.
 	}
 
-	if (!bIsAlreadyTaken)
-	{
-		CharacterType = RequestedType;
-		OnRep_CharacterType();
-		UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Selection accepted: %s (%d) -> %d"),
-			*GetPlayerName(), GetPlayerId(), static_cast<int32>(RequestedType));
-	}
-}
-
-bool AIdiotsTogetherPlayerState::ServerSelectCharacter_Validate(EIdiotsTogetherCharacterType RequestedType)
-{
+	UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("%s is now identity %d (requested %d)"),
+		*GetPlayerName(), static_cast<int32>(Resolved), static_cast<int32>(RequestedType));
 	return true;
 }
 
+void AIdiotsTogetherPlayerState::SetPlayerColorIndex_Server(int32 NewColorIndex)
+{
+	if (!HasAuthority() || PlayerColorIndex == NewColorIndex)
+	{
+		return;
+	}
+
+	PlayerColorIndex = NewColorIndex;
+	OnRep_PlayerColorIndex();
+
+	UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("%s assigned colour index %d"), *GetPlayerName(), PlayerColorIndex);
+}

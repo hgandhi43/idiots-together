@@ -28,6 +28,19 @@ enum class EIdiotsTogetherRoundPhase : uint8
 	NextRound   UMETA(DisplayName = "Next Round")
 };
 
+/** Placeholder look for an identity until skeletal characters arrive (P7.1). */
+USTRUCT(BlueprintType)
+struct FIdiotsTogetherIdentityVisual
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	FText Label;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
+	FVector MeshScale = FVector(0.8f, 0.8f, 1.8f);
+};
+
 USTRUCT(BlueprintType)
 struct FIdiotsTogetherObjectiveDefinition
 {

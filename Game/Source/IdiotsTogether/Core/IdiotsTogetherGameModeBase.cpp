@@ -4,6 +4,8 @@
 #include "IdiotsTogetherPlayerState.h"
 #include "IdiotsTogetherCharacter.h"
 #include "IdiotsTogetherScenarioDefinition.h"
+#include "IdiotsTogetherCharacterRules.h"
+#include "IdiotsTogetherSettings.h"
 #include "IdiotsTogether/IdiotsTogether.h"
 #include "TimerManager.h"
 
@@ -43,8 +45,32 @@ void AIdiotsTogetherGameModeBase::BeginPlay()
 
 void AIdiotsTogetherGameModeBase::PostLogin(APlayerController* NewPlayer)
 {
+	// Assign before Super so the pawn spawned by HandleStartingNewPlayer already has its colour.
+	AssignPlayerColor(NewPlayer);
 	Super::PostLogin(NewPlayer);
-	UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Player joined: %s"), *NewPlayer->GetName());
+	UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Player joined: %s"), *GetNameSafe(NewPlayer));
+}
+
+void AIdiotsTogetherGameModeBase::AssignPlayerColor(APlayerController* NewPlayer)
+{
+	AIdiotsTogetherPlayerState* NewPS = NewPlayer ? NewPlayer->GetPlayerState<AIdiotsTogetherPlayerState>() : nullptr;
+	if (!NewPS || !GameState)
+	{
+		return;
+	}
+
+	TArray<int32> TakenColors;
+	for (const APlayerState* OtherBase : GameState->PlayerArray)
+	{
+		const AIdiotsTogetherPlayerState* Other = Cast<AIdiotsTogetherPlayerState>(OtherBase);
+		if (Other && Other != NewPS && Other->GetPlayerColorIndex() != INDEX_NONE)
+		{
+			TakenColors.Add(Other->GetPlayerColorIndex());
+		}
+	}
+
+	const int32 PaletteSize = UIdiotsTogetherSettings::Get()->PlayerColorPalette.Num();
+	NewPS->SetPlayerColorIndex_Server(IdiotsTogetherCharacterRules::PickColorIndex(TakenColors, PaletteSize));
 }
 
 void AIdiotsTogetherGameModeBase::Logout(AController* Exiting)
