@@ -54,7 +54,7 @@ void AIdiotsTogetherObjectiveTrigger::OnOverlapBegin(UPrimitiveComponent* Overla
 		return;
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER TRIGGER] Player %s entered trigger '%s' (ObjectiveID=%s)"),
+	UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("%s entered trigger '%s' (objective %s)"),
 		*OtherActor->GetName(), *TriggerID, *ObjectiveIDToComplete);
 
 	if (UWorld* World = GetWorld())
@@ -64,7 +64,7 @@ void AIdiotsTogetherObjectiveTrigger::OnOverlapBegin(UPrimitiveComponent* Overla
 			if (GM->CompleteObjective(ObjectiveIDToComplete))
 			{
 				bHasTriggered = true;
-				UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER TRIGGER] Trigger '%s' completed ObjectiveID=%s!"),
+				UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Trigger '%s' completed objective %s"),
 					*TriggerID, *ObjectiveIDToComplete);
 			}
 		}

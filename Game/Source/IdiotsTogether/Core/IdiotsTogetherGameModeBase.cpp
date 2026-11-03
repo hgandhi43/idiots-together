@@ -32,15 +32,10 @@ AIdiotsTogetherGameModeBase::AIdiotsTogetherGameModeBase()
 void AIdiotsTogetherGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] GameMode BeginPlay: Class=%s, DefaultPawnClass=%s, PlayerControllerClass=%s"),
-		*GetClass()->GetName(),
-		DefaultPawnClass ? *DefaultPawnClass->GetName() : TEXT("NULL"),
-		PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
-
 	if (!ActiveScenarioDefinition)
 	{
 		ActiveScenarioDefinition = NewObject<UIdiotsTogetherScenarioDefinition>(this, UIdiotsTogetherScenarioDefinition::StaticClass());
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B GAMEMODE] Created default UIdiotsTogetherScenarioDefinition instance (TestScenario)."));
+		UE_LOG(LogIdiotsTogetherRound, Warning, TEXT("No ActiveScenarioDefinition set on %s; using built-in test scenario."), *GetClass()->GetName());
 	}
 
 	StartScenarioLifecycle();
@@ -49,7 +44,7 @@ void AIdiotsTogetherGameModeBase::BeginPlay()
 void AIdiotsTogetherGameModeBase::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	UE_LOG(LogIdiotsTogether, Log, TEXT("Player Joined: %s"), *NewPlayer->GetName());
+	UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Player joined: %s"), *NewPlayer->GetName());
 }
 
 void AIdiotsTogetherGameModeBase::Logout(AController* Exiting)
@@ -57,7 +52,7 @@ void AIdiotsTogetherGameModeBase::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 	if (Exiting)
 	{
-		UE_LOG(LogIdiotsTogether, Log, TEXT("Player Left: %s"), *Exiting->GetName());
+		UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Player left: %s"), *Exiting->GetName());
 	}
 }
 
@@ -75,7 +70,7 @@ void AIdiotsTogetherGameModeBase::StartScenarioLifecycle()
 		GS->ScenarioDisplayName = ActiveScenarioDefinition->DisplayName;
 		GS->ScenarioDescription = ActiveScenarioDefinition->Description;
 		GS->CurrentRoundIndex = 1;
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3C GAMEMODE] Started Scenario Lifecycle for ScenarioID=%s ('%s'), TargetRounds=%d"),
+		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Scenario lifecycle started: %s ('%s'), %d rounds"),
 			*GS->ActiveScenarioID, *GS->ScenarioDisplayName.ToString(), ActiveScenarioDefinition->TargetRoundCount);
 	}
 
@@ -110,12 +105,12 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 		GS->CurrentRoundIndex++;
 		if (GS->CurrentRoundIndex > TargetRounds)
 		{
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B GAMEMODE] Scenario complete! Reached round limit (%d/%d). Resetting to Round 1."),
+			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Round limit reached (%d/%d); wrapping to round 1 (run-end flow arrives in P2.2)."),
 				GS->CurrentRoundIndex, TargetRounds);
 			GS->CurrentRoundIndex = 1;
 		}
 
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B GAMEMODE] Advancing to Round %d"), GS->CurrentRoundIndex);
+		UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Advancing to round %d"), GS->CurrentRoundIndex);
 
 		// Briefly show NextRound then transition to Briefing
 		GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
@@ -163,7 +158,7 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 			}
 		}
 		GS->OnObjectiveStatesChanged.Broadcast();
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution phase started with %d active objectives."), GS->ObjectiveStates.Num());
+		UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Execution started with %d objectives"), GS->ObjectiveStates.Num());
 		break;
 	case EIdiotsTogetherRoundPhase::Success:
 	case EIdiotsTogetherRoundPhase::Failure:
@@ -179,8 +174,8 @@ void AIdiotsTogetherGameModeBase::TransitionToPhase(EIdiotsTogetherRoundPhase Ne
 	PhaseTimeRemaining = CurrentPhaseDuration;
 	GS->RemainingPhaseTime = PhaseTimeRemaining;
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B GAMEMODE] Transitioned to Phase=%d (%s), Duration=%.1fs, Round=%d"),
-		static_cast<int32>(NewPhase), *UEnum::GetValueAsString(NewPhase), CurrentPhaseDuration, GS->CurrentRoundIndex);
+	UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Phase -> %s (duration %.1fs, round %d)"),
+		GetRoundPhaseString(NewPhase), CurrentPhaseDuration, GS->CurrentRoundIndex);
 
 	if (CurrentPhaseDuration > 0.0f)
 	{
@@ -231,12 +226,12 @@ void AIdiotsTogetherGameModeBase::OnPhaseTimerExpired()
 		// Timer expiration during Execution when required objectives are incomplete results in Failure
 		if (CheckAllRequiredObjectivesCompleted())
 		{
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution timer expired and all required objectives were complete -> SUCCESS"));
+			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Execution timer expired with all required objectives complete -> Success"));
 			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
 		}
 		else
 		{
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Execution timer expired with incomplete required objectives -> FAILURE"));
+			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("Execution timer expired with required objectives incomplete -> Failure"));
 			TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
 		}
 		break;
@@ -259,7 +254,7 @@ void AIdiotsTogetherGameModeBase::AdvancePhase()
 		return;
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] GameMode AdvancePhase()"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] AdvancePhase()"), *GetNetworkRoleString(this));
 	OnPhaseTimerExpired();
 }
 
@@ -270,7 +265,7 @@ void AIdiotsTogetherGameModeBase::ForcePhaseSuccess()
 		return;
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] GameMode ForcePhaseSuccess()"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ForcePhaseSuccess()"), *GetNetworkRoleString(this));
 	TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
 }
 
@@ -281,7 +276,7 @@ void AIdiotsTogetherGameModeBase::ForcePhaseFailure()
 		return;
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] GameMode ForcePhaseFailure()"), *GetNetworkRoleString(this));
+	UE_LOG(LogIdiotsTogetherDev, Log, TEXT("[%s] ForcePhaseFailure()"), *GetNetworkRoleString(this));
 	TransitionToPhase(EIdiotsTogetherRoundPhase::Failure);
 }
 
@@ -295,7 +290,7 @@ bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
 	AIdiotsTogetherGameStateBase* GS = GetGameState<AIdiotsTogetherGameStateBase>();
 	if (!GS || GS->CurrentRoundPhase != EIdiotsTogetherRoundPhase::Execution)
 	{
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Cannot complete objective '%s' - Phase is not Execution!"), *ObjectiveID);
+		UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Ignored completion of '%s': not in Execution"), *ObjectiveID);
 		return false;
 	}
 
@@ -306,12 +301,12 @@ bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
 		{
 			if (State.bIsCompleted)
 			{
-				UE_LOG(LogIdiotsTogether, Log, TEXT("[M3D GAMEMODE] Objective '%s' is already completed."), *ObjectiveID);
+				UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Objective '%s' already completed"), *ObjectiveID);
 				return false;
 			}
 			State.bIsCompleted = true;
 			bFoundAndUpdated = true;
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] Objective '%s' ('%s') COMPLETED!"),
+			UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Objective completed: %s ('%s')"),
 				*State.ObjectiveID, *State.DisplayName.ToString());
 			break;
 		}
@@ -323,7 +318,7 @@ bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
 
 		if (CheckAllRequiredObjectivesCompleted())
 		{
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] All required objectives COMPLETED! Transitioning early to SUCCESS."));
+			UE_LOG(LogIdiotsTogetherRound, Log, TEXT("All required objectives complete -> early Success"));
 			GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
 			GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
 			TransitionToPhase(EIdiotsTogetherRoundPhase::Success);
@@ -331,7 +326,7 @@ bool AIdiotsTogetherGameModeBase::CompleteObjective(const FString& ObjectiveID)
 		return true;
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D GAMEMODE] ObjectiveID '%s' not found in active objective states!"), *ObjectiveID);
+	UE_LOG(LogIdiotsTogetherObjective, Warning, TEXT("Objective '%s' is not part of the active scenario"), *ObjectiveID);
 	return false;
 }
 

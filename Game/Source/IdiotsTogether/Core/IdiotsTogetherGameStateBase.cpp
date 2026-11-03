@@ -25,7 +25,7 @@ void AIdiotsTogetherGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimePr
 
 void AIdiotsTogetherGameStateBase::OnRep_CurrentRoundPhase(EIdiotsTogetherRoundPhase OldPhase)
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] OnRep_CurrentRoundPhase: %s -> %s"),
+	UE_LOG(LogIdiotsTogetherRound, Verbose, TEXT("[%s] OnRep phase %s -> %s"),
 		*GetNetworkRoleString(this), GetRoundPhaseString(OldPhase), GetRoundPhaseString(CurrentRoundPhase));
 
 	OnRoundPhaseChanged.Broadcast(CurrentRoundPhase, OldPhase);
@@ -33,7 +33,7 @@ void AIdiotsTogetherGameStateBase::OnRep_CurrentRoundPhase(EIdiotsTogetherRoundP
 
 void AIdiotsTogetherGameStateBase::OnRep_CurrentRoundIndex()
 {
-	UE_LOG(LogIdiotsTogether, Log, TEXT("[GAMESTATE REPL] OnRep_CurrentRoundIndex: RoundIndex=%d"), CurrentRoundIndex);
+	UE_LOG(LogIdiotsTogetherRound, Verbose, TEXT("OnRep round index %d"), CurrentRoundIndex);
 }
 
 void AIdiotsTogetherGameStateBase::OnRep_RemainingPhaseTime()
@@ -42,12 +42,12 @@ void AIdiotsTogetherGameStateBase::OnRep_RemainingPhaseTime()
 
 void AIdiotsTogetherGameStateBase::OnRep_ActiveScenarioID()
 {
-	UE_LOG(LogIdiotsTogether, Log, TEXT("[GAMESTATE REPL] OnRep_ActiveScenarioID: ActiveScenarioID=%s"), *ActiveScenarioID);
+	UE_LOG(LogIdiotsTogetherRound, Verbose, TEXT("OnRep active scenario %s"), *ActiveScenarioID);
 }
 
 void AIdiotsTogetherGameStateBase::OnRep_ObjectiveStates()
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3D][%s] OnRep_ObjectiveStates: %d objective states updated"),
+	UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("[%s] OnRep objectives (%d)"),
 		*GetNetworkRoleString(this), ObjectiveStates.Num());
 
 	OnObjectiveStatesChanged.Broadcast();
@@ -59,9 +59,6 @@ void AIdiotsTogetherGameStateBase::SetCurrentRoundPhase_Server(EIdiotsTogetherRo
 	{
 		EIdiotsTogetherRoundPhase OldPhase = CurrentRoundPhase;
 		CurrentRoundPhase = NewPhase;
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3B][%s] GameState phase changed: %s -> %s"),
-			*GetNetworkRoleString(this), GetRoundPhaseString(OldPhase), GetRoundPhaseString(CurrentRoundPhase));
-
 		OnRoundPhaseChanged.Broadcast(CurrentRoundPhase, OldPhase);
 	}
 }

@@ -111,7 +111,6 @@ TSharedRef<SWidget> UIdiotsTogetherDevCharSelectWidget::RebuildWidget()
 void UIdiotsTogetherDevCharSelectWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A DEV UI] M3A DEV UI CREATED"));
 	UpdateStatusText();
 }
 

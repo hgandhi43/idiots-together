@@ -27,13 +27,13 @@ bool UIdiotsTogetherObjectiveComponent::TriggerObjectiveCompletion(APawn* Instig
 
 	if (bTriggerOnce && bHasTriggered)
 	{
-		UE_LOG(LogIdiotsTogether, Log, TEXT("[OBJECTIVE COMPONENT] ObjectiveComponent on %s has already triggered."), *Owner->GetName());
+		UE_LOG(LogIdiotsTogetherObjective, Verbose, TEXT("Objective component on %s already triggered"), *Owner->GetName());
 		return false;
 	}
 
 	if (ObjectiveIDToComplete.IsEmpty())
 	{
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[OBJECTIVE COMPONENT] ObjectiveIDToComplete is empty on %s!"), *Owner->GetName());
+		UE_LOG(LogIdiotsTogetherObjective, Warning, TEXT("Objective component on %s has no objective set"), *Owner->GetName());
 		return false;
 	}
 
@@ -53,7 +53,7 @@ bool UIdiotsTogetherObjectiveComponent::TriggerObjectiveCompletion(APawn* Instig
 	if (bSuccess)
 	{
 		bHasTriggered = true;
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[OBJECTIVE COMPONENT] ObjectiveComponent on %s successfully triggered completion of ObjectiveID=%s (Instigator=%s)"),
+		UE_LOG(LogIdiotsTogetherObjective, Log, TEXT("Objective component on %s completed %s (instigator %s)"),
 			*Owner->GetName(), *ObjectiveIDToComplete, InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"));
 	}
 

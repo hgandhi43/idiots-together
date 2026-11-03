@@ -72,7 +72,7 @@ void AIdiotsTogetherTestBox::Interact_Implementation(APawn* InstigatorPawn)
 		bIsActivated = !bIsActivated;
 		TargetRotation = InitialRotation + FRotator(0.0f, bIsActivated ? 90.0f : 0.0f, 0.0f);
 
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER] IdiotsTogetherTestBox interacted by %s! New bIsActivated=%s, TargetRotation=%s"),
+		UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("Test box interacted by %s (activated=%s, target rotation %s)"),
 			InstigatorPawn ? *InstigatorPawn->GetName() : TEXT("NULL"),
 			bIsActivated ? TEXT("True") : TEXT("False"),
 			*TargetRotation.ToString());
@@ -92,15 +92,15 @@ void AIdiotsTogetherTestBox::Interact_Implementation(APawn* InstigatorPawn)
 
 void AIdiotsTogetherTestBox::OnRep_TargetRotation()
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[CLIENT ONREP] IdiotsTogetherTestBox TargetRotation replicated: %s"), *TargetRotation.ToString());
+	UE_LOG(LogIdiotsTogetherInteraction, VeryVerbose, TEXT("Test box target rotation replicated: %s"), *TargetRotation.ToString());
 }
 
 void AIdiotsTogetherTestBox::OnBeginFocus_Implementation(APawn* InstigatorPawn)
 {
-	UE_LOG(LogIdiotsTogether, Log, TEXT("Player began focusing IdiotsTogetherTestBox"));
+	UE_LOG(LogIdiotsTogetherInteraction, VeryVerbose, TEXT("Began focusing %s"), *GetName());
 }
 
 void AIdiotsTogetherTestBox::OnEndFocus_Implementation(APawn* InstigatorPawn)
 {
-	UE_LOG(LogIdiotsTogether, Log, TEXT("Player ended focusing IdiotsTogetherTestBox"));
+	UE_LOG(LogIdiotsTogetherInteraction, VeryVerbose, TEXT("Ended focusing %s"), *GetName());
 }

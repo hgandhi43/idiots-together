@@ -22,7 +22,7 @@ void AIdiotsTogetherPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 
 void AIdiotsTogetherPlayerState::OnRep_CharacterType()
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[PLAYER STATE] OnRep_CharacterType: PlayerId=%d, Name=%s, CharacterType=%d"),
+	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("OnRep character type: player %d (%s) -> %d"),
 		GetPlayerId(), *GetPlayerName(), static_cast<int32>(CharacterType));
 
 	OnCharacterTypeChanged.Broadcast(CharacterType);
@@ -46,9 +46,6 @@ void AIdiotsTogetherPlayerState::ServerSelectCharacter_Implementation(EIdiotsTog
 	// TEAM RANDOM SELECTION
 	if (RequestedType == EIdiotsTogetherCharacterType::Random)
 	{
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A TEAM RANDOM] Team Random requested by PlayerState %s (ID: %d)"),
-			*GetPlayerName(), GetPlayerId());
-
 		// Available unique characters (max 4 selectable unique types)
 		TArray<EIdiotsTogetherCharacterType> AvailablePool = {
 			EIdiotsTogetherCharacterType::Boss,
@@ -71,7 +68,7 @@ void AIdiotsTogetherPlayerState::ServerSelectCharacter_Implementation(EIdiotsTog
 					EIdiotsTogetherCharacterType Assigned = AvailablePool[Index % AvailablePool.Num()];
 					PS->CharacterType = Assigned;
 					PS->OnRep_CharacterType();
-					UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A TEAM RANDOM ASSIGNED] PlayerState %s (ID: %d) -> CharacterType=%d"),
+					UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Team random: %s (%d) -> %d"),
 						*PS->GetPlayerName(), PS->GetPlayerId(), static_cast<int32>(Assigned));
 					Index++;
 				}
@@ -91,7 +88,7 @@ void AIdiotsTogetherPlayerState::ServerSelectCharacter_Implementation(EIdiotsTog
 				if (OtherPS != this && OtherPS->GetCharacterType() == RequestedType)
 				{
 					bIsAlreadyTaken = true;
-					UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A MANUAL SELECTION REJECTED] CharacterType=%d is ALREADY TAKEN by PlayerState %s (ID: %d)"),
+					UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Selection of %d rejected: taken by %s (%d)"),
 						static_cast<int32>(RequestedType), *OtherPS->GetPlayerName(), OtherPS->GetPlayerId());
 					break;
 				}
@@ -103,7 +100,7 @@ void AIdiotsTogetherPlayerState::ServerSelectCharacter_Implementation(EIdiotsTog
 	{
 		CharacterType = RequestedType;
 		OnRep_CharacterType();
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A MANUAL SELECTION ACCEPTED] PlayerState %s (ID: %d) -> CharacterType=%d"),
+		UE_LOG(LogIdiotsTogetherPlayer, Log, TEXT("Selection accepted: %s (%d) -> %d"),
 			*GetPlayerName(), GetPlayerId(), static_cast<int32>(RequestedType));
 	}
 }

@@ -49,7 +49,6 @@ public:
 
 public:
 	virtual void Tick(float DeltaTime) override;
-	virtual void Jump() override;
 	virtual void OnRep_PlayerState() override;
 	virtual void PossessedBy(AController* NewController) override;
 

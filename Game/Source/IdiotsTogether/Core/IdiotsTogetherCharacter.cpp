@@ -98,9 +98,8 @@ AIdiotsTogetherCharacter::AIdiotsTogetherCharacter()
 void AIdiotsTogetherCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character BeginPlay: Name=%s, Class=%s, Controller=%s, IsLocallyControlled=%s, Location=%s"),
-		*GetName(), *GetClass()->GetName(), Controller ? *Controller->GetName() : TEXT("NULL"),
-		IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"), *GetActorLocation().ToString());
+	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("[%s] Character BeginPlay: %s (Controller=%s, Local=%d)"),
+		*GetNetworkRoleString(this), *GetName(), Controller ? *Controller->GetName() : TEXT("None"), IsLocallyControlled());
 	RegisterMappingContext();
 	BindToPlayerState();
 }
@@ -108,14 +107,12 @@ void AIdiotsTogetherCharacter::BeginPlay()
 void AIdiotsTogetherCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character OnRep_PlayerState on %s"), *GetName());
 	BindToPlayerState();
 }
 
 void AIdiotsTogetherCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character PossessedBy on %s by %s"), *GetName(), NewController ? *NewController->GetName() : TEXT("NULL"));
 	BindToPlayerState();
 }
 
@@ -127,8 +124,8 @@ void AIdiotsTogetherCharacter::BindToPlayerState()
 		PS->OnCharacterTypeChanged.AddDynamic(this, &AIdiotsTogetherCharacter::OnPlayerStateCharacterTypeChanged);
 
 		UpdateCharacterRepresentation(PS->GetCharacterType());
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[BINDING] Bound %s to PlayerState %s with CharacterType=%d"),
-			*GetName(), *PS->GetName(), static_cast<int32>(PS->GetCharacterType()));
+		UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Bound %s to PlayerState %s (CharacterType=%d)"),
+			*GetName(), *PS->GetPlayerName(), static_cast<int32>(PS->GetCharacterType()));
 	}
 }
 
@@ -156,22 +153,22 @@ void AIdiotsTogetherCharacter::UpdateCharacterRepresentation(EIdiotsTogetherChar
 	switch (NewType)
 	{
 	case EIdiotsTogetherCharacterType::Boss:
-		CharColor = FLinearColor(1.0f, 0.8f, 0.0f, 1.0f); // Confident Gold
+		CharColor = FLinearColor(1.0f, 0.8f, 0.0f, 1.0f);
 		MeshScale = FVector(0.9f, 0.9f, 1.85f);
 		DisplayName = TEXT("[BOSS]");
 		break;
 	case EIdiotsTogetherCharacterType::Nerd:
-		CharColor = FLinearColor(0.0f, 0.75f, 1.0f, 1.0f); // Smart Cyan / Blue
+		CharColor = FLinearColor(0.0f, 0.75f, 1.0f, 1.0f);
 		MeshScale = FVector(0.75f, 0.75f, 1.95f);
 		DisplayName = TEXT("[NERD]");
 		break;
 	case EIdiotsTogetherCharacterType::Muscle:
-		CharColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f); // Strong Red
+		CharColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f);
 		MeshScale = FVector(1.25f, 1.25f, 1.7f);
 		DisplayName = TEXT("[MUSCLE]");
 		break;
 	case EIdiotsTogetherCharacterType::Intern:
-		CharColor = FLinearColor(0.2f, 0.85f, 0.2f, 1.0f); // Young/Inexperienced Green
+		CharColor = FLinearColor(0.2f, 0.85f, 0.2f, 1.0f);
 		MeshScale = FVector(0.75f, 0.75f, 1.45f);
 		DisplayName = TEXT("[INTERN]");
 		break;
@@ -194,51 +191,44 @@ void AIdiotsTogetherCharacter::UpdateCharacterRepresentation(EIdiotsTogetherChar
 		OverheadTextComponent->SetTextRenderColor(CharColor.ToFColor(true));
 	}
 
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[M3A REPRESENTATION UPDATE] M3A REPRESENTATION UPDATE: Character=%s, Type=%d (%s)"),
-		*GetName(), static_cast<int32>(NewType), *DisplayName);
+	UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Representation updated: %s -> %s"), *GetName(), *DisplayName);
 }
 
 void AIdiotsTogetherCharacter::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character NotifyControllerChanged: Controller=%s, IsLocallyControlled=%s"),
-		Controller ? *Controller->GetName() : TEXT("NULL"), IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"));
 	RegisterMappingContext();
 }
 
 void AIdiotsTogetherCharacter::PawnClientRestart()
 {
 	Super::PawnClientRestart();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Character PawnClientRestart: Controller=%s, IsLocallyControlled=%s"),
-		Controller ? *Controller->GetName() : TEXT("NULL"), IsLocallyControlled() ? TEXT("TRUE") : TEXT("FALSE"));
 	RegisterMappingContext();
 }
 
 void AIdiotsTogetherCharacter::RegisterMappingContext()
 {
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	APlayerController* PlayerController = Cast<APlayerController>(Controller);
+	if (!PlayerController)
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			if (DefaultMappingContext)
-			{
-				Subsystem->AddMappingContext(DefaultMappingContext, 0);
-				UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Added DefaultMappingContext (%s) to EnhancedInputSubsystem for %s"), *DefaultMappingContext->GetName(), *GetName());
-			}
-			else
-			{
-				UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] DefaultMappingContext is NULL on %s!"), *GetName());
-			}
-		}
-		else
-		{
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] EnhancedInputLocalPlayerSubsystem is NULL for %s!"), *PlayerController->GetName());
-		}
+		return;
+	}
+
+	// Remote players' controllers on the server have no LocalPlayer, so no subsystem: that is expected.
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+	if (!Subsystem)
+	{
+		return;
+	}
+
+	if (DefaultMappingContext)
+	{
+		Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		UE_LOG(LogIdiotsTogetherPlayer, Verbose, TEXT("Added mapping context %s for %s"), *DefaultMappingContext->GetName(), *GetName());
 	}
 	else
 	{
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] RegisterMappingContext skipped because Controller is not APlayerController (Controller=%s)"),
-			Controller ? *Controller->GetName() : TEXT("NULL"));
+		UE_LOG(LogIdiotsTogetherPlayer, Warning, TEXT("DefaultMappingContext is not set on %s; player input will not work."), *GetName());
 	}
 }
 
@@ -306,7 +296,7 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 				FocusedActor = HitActor;
 				FocusedInteractable = HitActor;
 				IIdiotsTogetherInteractableInterface::Execute_OnBeginFocus(FocusedActor, this);
-				UE_LOG(LogIdiotsTogether, Warning, TEXT("[INTERACTION] OnBeginFocus called on %s by %s"), *FocusedActor->GetName(), *GetName());
+				UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("%s began focusing %s"), *GetName(), *FocusedActor->GetName());
 			}
 
 			FText PromptText = IIdiotsTogetherInteractableInterface::Execute_GetInteractionPrompt(FocusedActor, this);
@@ -314,7 +304,6 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 			if (AIdiotsTogetherPlayerController* PC = Cast<AIdiotsTogetherPlayerController>(Controller))
 			{
 				PC->ShowInteractionPrompt(PromptText);
-				UE_LOG(LogIdiotsTogether, Warning, TEXT("[INTERACTION] ShowInteractionPrompt called with prompt: '%s'"), *PromptText.ToString());
 			}
 			return;
 		}
@@ -333,49 +322,42 @@ void AIdiotsTogetherCharacter::PerformInteractionTrace()
 	}
 }
 
-void AIdiotsTogetherCharacter::Jump()
-{
-	Super::Jump();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Jump fired!"));
-}
-
 void AIdiotsTogetherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] SetupPlayerInputComponent called on %s!"), *GetName());
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (!EnhancedInputComponent)
 	{
-		if (JumpAction)
-		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AIdiotsTogetherCharacter::Jump);
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound JumpAction (%s)"), *JumpAction->GetName());
-		}
+		UE_LOG(LogIdiotsTogetherPlayer, Warning, TEXT("%s: input component is not an EnhancedInputComponent; no actions bound."), *GetName());
+		return;
+	}
 
-		if (MoveAction)
-		{
-			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Move);
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound MoveAction (%s)"), *MoveAction->GetName());
-		}
+	if (JumpAction)
+	{
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+	}
 
-		if (LookAction)
-		{
-			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Look);
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound LookAction (%s)"), *LookAction->GetName());
-		}
+	if (MoveAction)
+	{
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Move);
+	}
 
-		if (InteractAction)
-		{
-			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AIdiotsTogetherCharacter::Interact);
-			UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] Bound InteractAction (%s)"), *InteractAction->GetName());
-		}
+	if (LookAction)
+	{
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AIdiotsTogetherCharacter::Look);
+	}
+
+	if (InteractAction)
+	{
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AIdiotsTogetherCharacter::Interact);
 	}
 }
 
 void AIdiotsTogetherCharacter::Move(const FInputActionValue& Value)
 {
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	const FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -385,16 +367,6 @@ void AIdiotsTogetherCharacter::Move(const FInputActionValue& Value)
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		const FVector FinalForward = ForwardDirection * MovementVector.Y;
-		const FVector FinalRight = RightDirection * MovementVector.X;
-		const FVector TotalInputVector = FinalForward + FinalRight;
-
-		UE_LOG(LogIdiotsTogether, Warning, TEXT("[MOVEMENT DIAGNOSTIC] IA_Move: Input2D=(X=%.2f, Y=%.2f) | ControllerYaw=%.2f | ForwardVec=(X=%.2f, Y=%.2f, Z=%.2f) | RightVec=(X=%.2f, Y=%.2f, Z=%.2f) | FinalMove=(X=%.2f, Y=%.2f, Z=%.2f)"),
-			MovementVector.X, MovementVector.Y, Rotation.Yaw,
-			ForwardDirection.X, ForwardDirection.Y, ForwardDirection.Z,
-			RightDirection.X, RightDirection.Y, RightDirection.Z,
-			TotalInputVector.X, TotalInputVector.Y, TotalInputVector.Z);
-
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 	}
@@ -402,9 +374,7 @@ void AIdiotsTogetherCharacter::Move(const FInputActionValue& Value)
 
 void AIdiotsTogetherCharacter::Look(const FInputActionValue& Value)
 {
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Look fired! Vector=(X=%.2f, Y=%.2f), Controller=%s"),
-		LookAxisVector.X, LookAxisVector.Y, Controller ? *Controller->GetName() : TEXT("NULL"));
+	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -415,9 +385,8 @@ void AIdiotsTogetherCharacter::Look(const FInputActionValue& Value)
 
 void AIdiotsTogetherCharacter::Interact()
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[RUNTIME DIAGNOSTIC] IA_Interact fired! FocusedActor=%s, HasAuthority=%s"),
-		FocusedActor ? *FocusedActor->GetName() : TEXT("NONE"),
-		HasAuthority() ? TEXT("TRUE") : TEXT("FALSE"));
+	UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("%s pressed Interact (Focused=%s)"),
+		*GetName(), FocusedActor ? *FocusedActor->GetName() : TEXT("None"));
 
 	if (FocusedActor && FocusedActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{
@@ -437,8 +406,8 @@ void AIdiotsTogetherCharacter::Interact()
 
 void AIdiotsTogetherCharacter::ServerInteract_Implementation(AActor* TargetActor)
 {
-	UE_LOG(LogIdiotsTogether, Warning, TEXT("[SERVER] ServerInteract received from client %s for target %s"),
-		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("NULL"));
+	UE_LOG(LogIdiotsTogetherInteraction, Verbose, TEXT("ServerInteract from %s on %s"),
+		*GetName(), TargetActor ? *TargetActor->GetName() : TEXT("None"));
 
 	if (TargetActor && TargetActor->GetClass()->ImplementsInterface(UIdiotsTogetherInteractableInterface::StaticClass()))
 	{

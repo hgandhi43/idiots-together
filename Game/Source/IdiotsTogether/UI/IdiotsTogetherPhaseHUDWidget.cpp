@@ -46,7 +46,7 @@ TSharedRef<SWidget> UIdiotsTogetherPhaseHUDWidget::RebuildWidget()
 		.Padding(6.0f, 2.0f)
 		[
 			SAssignNew(ScenarioDescTextBlock, STextBlock)
-			.Text(FText::FromString(TEXT("Default M3B Test Scenario for lifecycle verification.")))
+			.Text(FText::FromString(TEXT("No scenario description.")))
 			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 11))
 			.ColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.85f, 0.85f)))
 			.Justification(ETextJustify::Center)
@@ -195,7 +195,7 @@ void UIdiotsTogetherPhaseHUDWidget::UpdateHUD()
 
 	// Scenario Name & Description from replicated GameState properties
 	FText NameText = GS->ScenarioDisplayName.IsEmpty() ? FText::FromString(TEXT("Test Scenario")) : GS->ScenarioDisplayName;
-	FText DescText = GS->ScenarioDescription.IsEmpty() ? FText::FromString(TEXT("Default M3B Test Scenario for lifecycle verification.")) : GS->ScenarioDescription;
+	FText DescText = GS->ScenarioDescription.IsEmpty() ? FText::FromString(TEXT("No scenario description.")) : GS->ScenarioDescription;
 
 	if (ScenarioNameTextBlock.IsValid())
 	{
