@@ -5,6 +5,7 @@
 .idea/
 .vscode/
 *.sln
+*.slnx
 *.suo
 *.user
 *.userosscache
